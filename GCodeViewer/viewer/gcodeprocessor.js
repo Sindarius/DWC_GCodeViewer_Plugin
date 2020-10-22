@@ -10,7 +10,6 @@ export default class {
         this.color = [];
         this.absolute = true; //Track if we are in relative or absolute mode.
         this.lines = [];
-        this.extrudedLines = [];
         this.travels = [];
         this.currentColor = new BABYLON.Color4(1, 1, 1, 1);
         this.sps;
@@ -25,6 +24,17 @@ export default class {
         this.currentLayerHeight = 0;
 
 
+        //Live Rendering
+        this.liveTracking = false;
+        this.materialTransparency = 0.2;
+        this.gcodeLineIndex = [];
+        this.renderIndex = 0;
+        this.lastRenderIndex = 0;
+        this.meshVersion = 2;
+        this.beforeRenderFunc;
+        this.gcodeLineNumber = 0;
+
+        this.finalPass = false;
 
         this.extruderColors = [
             new BABYLON.Color4(0, 1, 1, 1), //c
@@ -39,8 +49,8 @@ export default class {
         if (colors === null || colors.length === 0) return;
         this.extruderColors = [];
         for (var idx = 0; idx < colors.length; idx++) {
-            var color = colors[idx] ;
-            if(color.length < 8) {
+            var color = colors[idx];
+            if (color.length < 8) {
                 color = color + "FF";
             }
             var extruderColor = BABYLON.Color4.FromHexString(color);
@@ -52,7 +62,12 @@ export default class {
         return this.maxHeight;
     }
     processGcodeFile(file) {
+        if (file === undefined || file === null || file.length === 0) {
+            return;
+        }
         var lines = file.split(/\r\n|\n/);
+
+        this.lineCount = lines.length;
 
         //set initial color to extruder 0
         this.currentColor = this.extruderColors[0].clone();
@@ -61,14 +76,14 @@ export default class {
             var line = lines[lineNo];
             line.trim();
             if (!line.startsWith(";")) {
-                this.processLine(line);
+                this.processLine(line, lineNo);
             }
         }
 
-        file = {}; //Clear out the file.
+        file = {}; //Clear1 out the file.
     }
 
-    processLine(tokenString) {
+    processLine(tokenString, lineNumber) {
 
         //Remove the comments in the line
         let commentIndex = tokenString.indexOf(";");
@@ -76,14 +91,13 @@ export default class {
             tokenString = tokenString.substring(0, commentIndex - 1).trim();
         }
 
-
         let tokens = tokenString.toUpperCase().split(" ");
         if (tokens.length > 1) {
             switch (tokens[0]) {
                 case "G0":
                 case "G1":
                     var line = new gcodeLine();
-
+                    line.gcodeLineNumber = lineNumber;
                     line.start = this.currentPosition.clone();
                     for (let tokenIdx = 1; tokenIdx < tokens.length; tokenIdx++) {
                         let token = tokens[tokenIdx];
@@ -165,7 +179,7 @@ export default class {
                             finalColors[0],
                             finalColors[1],
                             finalColors[2],
-                            1
+                            0.1
                         );
                         break;
                     }
@@ -180,59 +194,85 @@ export default class {
     }
 
     createScene(scene) {
-        var ver = 2;
-
-        this.lineCount = this.lines.length; //rendered lines
-
-
+        this.meshVersion = 2;
+        this.lastRenderIndex = 0;
+        let that = this;
+        let lastUpdate = Date.now();
 
         //if we are on a mobile device we'll have less memory to play with so switch to line rendering earlier
         if (this.lines.length > 400000 || (window.mobilecheck() && this.lines.length > 200000)) {
             console.log("Switching to line rendering mode.");
-            ver = 1;
+            this.meshVersion = 1;
         }
 
-        if (ver === 1) {
+        if (this.meshVersion === 1) {
             this.renderMode = "Line Rendering";
-            var lineArray = [];
-            var colorArray = [];
+
+
+            //Extrusion
+            let lineArray = [];
+            let colorArray = [];
             for (var lineIdx = 0; lineIdx < this.lines.length; lineIdx++) {
                 let line = this.lines[lineIdx];
+                line.lineNumber = lineIdx;
+                this.gcodeLineIndex.push(line.gcodeLineNumber);
                 let data = line.getPoints(scene);
                 lineArray.push(data.points);
                 colorArray.push(data.colors);
             }
             var lineMesh = BABYLON.MeshBuilder.CreateLineSystem(
-                "lines", {
+                "gcodemodel", {
                 lines: lineArray,
                 colors: colorArray,
-                updatable: false,
-                useVertexAlpha: false
+                updatable: true,
+                useVertexColor: true
             }, scene);
+
+            lineArray = null;
+            colorArray = null;
+
             lineMesh.isVisible = true;
-            var travelArray = [];
-            var travelColorArray = [];
-            for (var travelIdx = 0; travelIdx < this.travels.length; travelIdx++) {
-                let line = this.travels[travelIdx];
-                let data = line.getPoints(scene);
-                travelArray.push(data.points);
-                travelColorArray.push(data.colors);
+            lineMesh.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.ColorKind);
+
+
+
+            let firstUpdate = true;
+
+            this.beforeRenderFunc = function () {
+                if (that.liveTracking || that.finalPass) {
+
+                    if (that.renderIndex === 0) {
+                        return;
+                    } else
+                        if (Date.now() - lastUpdate < 5000 && !that.finalPass) {
+                            return;
+                        }
+                        else {
+                            lastUpdate = Date.now();
+                            var colorData = lineMesh.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+                            for (var colorIdx = that.lastRenderIndex; colorIdx < that.renderIndex; colorIdx++) {
+                                let index = colorIdx * 8;
+                                colorData[index] = 1;
+                                colorData[index + 1] = 1;
+                                colorData[index + 2] = 1;
+                                colorData[index + 3] = 1;
+                                colorData[index + 4] = 1;
+                                colorData[index + 5] = 1;
+                                colorData[index + 6] = 1;
+                                colorData[index + 7] = 1;
+                            }
+                            if (firstUpdate) {
+                                firstUpdate = false;
+                            }
+                            lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
+                            that.lastRenderIndex = that.renderIndex;
+                            if(that.finalPass) that.finalPass = false;
+                        }
+                }
             }
-            var travelMesh = BABYLON.MeshBuilder.CreateLineSystem(
-                "travels", {
-                lines: travelArray,
-                colors: travelColorArray,
-                updatable: false,
-                useVertexAlpha: false
-            },
-                scene
-            );
-            travelMesh.isVisible = false;
+            scene.registerBeforeRender(this.beforeRenderFunc);
         }
-
-
-
-        if (ver === 2) {
+        else if (this.meshVersion === 2) {
 
             var layerHeight = Math.floor((this.currentLayerHeight - this.previousLayerHeight) * 100) / 100;
 
@@ -244,21 +284,136 @@ export default class {
 
             var l = this.lines;
 
+            this.gcodeLineIndex = new Array(l.length);
             var particleBuilder = function (particle, i, s) {
                 l[s].renderLineV3(particle);
+                that.gcodeLineIndex[s] = particle.props.gcodeLineNumber; 
             };
 
-            var sps = new BABYLON.SolidParticleSystem("sps", scene, { updatable: false });
+            
 
-            sps.addShape(box, this.lines.length, {
+            this.sps = new BABYLON.SolidParticleSystem("gcodemodel", scene, {
+                updatable: true,
+                enableMultiMaterial: true,
+            });
+
+            this.sps.addShape(box, this.lines.length, {
                 positionFunction: particleBuilder
             });
-            sps.buildMesh();
-            sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
-            sps.mesh.freezeNormals();
-        }
 
-        this.lines = []; //get rid of the line data.
+            this.sps.buildMesh();
+
+            //Build out solid and transparent material.
+            var solidMat = new BABYLON.StandardMaterial("solidMaterial", scene);
+            var transparentMat = new BABYLON.StandardMaterial("transparentMaterial", scene);
+            transparentMat.alpha = this.materialTransparency;
+
+            /*
+            var multiMaterial = new BABYLON.MultiMaterial("spsMultiMaterial", scene);
+            multiMaterial.subMaterials.push(solidMat);
+            multiMaterial.subMaterials.push(transparentMat);
+            spsMesh.material = multiMaterial;
+            */
+
+            this.sps.setMultiMaterial([solidMat,transparentMat]);
+
+            this.sps.setParticles();
+            this.sps.computeSubMeshes();
+
+            this.sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
+            this.sps.mesh.freezeNormals();
+            
+            
+            this.sps.updateParticle = function (particle) {
+                if (that.gcodeLineIndex[particle.idx] < that.gcodeLineNumber) {
+                    particle.color = new BABYLON.Color4(1, 1, 1, 1);
+                    particle.materialIndex = 0;
+                }
+                else{
+                    particle.color = new BABYLON.Color4(particle.color.r,particle.color.g,particle.color.b, 0.5);
+                    particle.materialIndex = 1;
+                }
+            }
+
+
+            this.beforeRenderFunc = function () {
+                if (that.liveTracking || that.finalPass) {
+                    if (Date.now() - lastUpdate < 5000 && !that.finalPass) {
+                        return;
+                    }
+                    else {
+                        lastUpdate = Date.now();
+                        that.sps.setParticles();
+                        that.sps.computeSubMeshes();
+                        if(that.finalPass) that.finalPass = false;
+                    }
+                }
+            }
+
+            scene.registerBeforeRender(this.beforeRenderFunc);
+
+
+
+        }
+        this.createTravelLines(scene);
+        this.lines = [];
+        this.travels = [];
+
+    }
+
+    createTravelLines(scene) {
+        //Travels
+        var travelArray = [];
+        var travelColorArray = [];
+        for (var travelIdx = 0; travelIdx < this.travels.length; travelIdx++) {
+            let line = this.travels[travelIdx];
+            let data = line.getPoints(scene);
+            travelArray.push(data.points);
+            travelColorArray.push(data.colors);
+        }
+        var travelMesh = BABYLON.MeshBuilder.CreateLineSystem(
+            "travels", {
+            lines: travelArray,
+            colors: travelColorArray,
+            updatable: false,
+            useVertexAlpha: false
+        },
+            scene
+        );
+        travelMesh.isVisible = false;
+    }
+
+    updatePercentComplete(percentComplete) {
+        if (this.liveTracking) {
+            this.gcodeLineNumber = Math.floor(this.lineCount * percentComplete);
+            for (var idx = this.lastRenderIndex; idx < this.gcodeLineIndex.length; idx++) {
+                if (this.gcodeLineIndex[idx + 1] > this.gcodeLineNumber) {
+                    this.renderIndex = idx;
+                    return;
+                }
+            }
+        }
+    }
+    setLiveTracking(enabled) {
+        if (this.liveTracking && enabled == false) {
+            this.renderIndex = this.lineCount;
+        }
+        this.liveTracking = enabled;
+    }
+
+    doFinalPass(){
+        this.gcodeLineNumber = Number.MAX_VALUE;
+        this.renderIndex = Number.MAX_VALUE;
+        this.finalPass = true;
+    }
+
+    updateMesh() {
+        if (this.meshVersion === 1) {
+            console.log("Version 1")
+        }
+        else if (this.meshVersion === 2) {
+            console.log("Version 2")
+        }
     }
 }
 

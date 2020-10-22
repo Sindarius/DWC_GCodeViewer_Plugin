@@ -16,25 +16,3 @@ registerRoute(GCodeViewer, {
 });
 
 registerPluginContextMenuItem('View 3D', '/GCodeViewer', 'mdi-rotate-3d', 'view-3d-model', ContextMenuType.JobFileList);
-
-/*
-export default
-    {
-        install(Vue) {
-            Vue.component('gcodeviewer-color-picker', ColorPicker);
-
-            registerRoute(GCodeViewer, {
-                Job: {
-                    GCodeViewer: {
-                        icon: 'mdi-rotate-3d',
-                        caption: 'GCode Viewer',
-                        path: '/GCodeViewer'
-                    }
-                }
-            });
-
-            registerPluginContextMenuItem('View 3D', '/GCodeViewer', 'mdi-rotate-3d', 'view-3d-model', ContextMenuType.JobFileList);
-        }
-    }
-
-    */

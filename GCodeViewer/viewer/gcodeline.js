@@ -8,11 +8,8 @@ export default class {
     this.start; //babylon vector3
     this.end; //babylon vector3
     this.extruding = false;
-    this.gcodeString;
-    this.moveType;
-    this.babylonLine;
+    this.gcodeLineNumber = 0;
     this.color;
-    this.material;
   }
 
   length() {
@@ -21,18 +18,15 @@ export default class {
 
   renderLine(scene) {
     var points = [this.start, this.end];
-    this.babylonLine = BABYLON.Mesh.CreateLines("lines", points, scene);
-
-    this.babylonLine.enableEdgesRendering();
-    this.babylonLine.edgesWidth = 10;
-    this.babylonLine.edgesColor = new BABYLON.Color4(1, 1, 0, 1);
+    let lineMesh = BABYLON.Mesh.CreateLines("lines", points, scene);
+    lineMesh.enableEdgesRendering();
+    lineMesh.edgesWidth = 10;
+    lineMesh.edgesColor = new BABYLON.Color4(1, 1, 0, 1);
   }
 
   renderLineV2(scene) {
-    var points = [this.start, this.end];
-
     var tube = BABYLON.MeshBuilder.CreateTube("tube", {
-      path: points,
+      path: [this.start, this.end],
       radius: 0.2,
       tesselation: 4,
       sideOrientation: BABYLON.Mesh.FRONTSIDE,
@@ -51,8 +45,8 @@ export default class {
   }
 
   renderLineV3(p) {
-    var length = this.distanceVector(this.start, this.end);
-    var rot2 = Math.atan2(this.end.z - this.start.z, this.end.x - this.start.x);
+    let length = this.distanceVector(this.start, this.end);
+    let rot2 = Math.atan2(this.end.z - this.start.z, this.end.x - this.start.x);
     p.scaling.x = length;
     p.rotation.y = -rot2;
 
@@ -60,6 +54,11 @@ export default class {
     p.position.y = this.start.y;
     p.position.z = this.start.z + (length / 2) * Math.sin(rot2);
     p.color = this.color;
+    p.materialIndex = 0;
+    p.props = {
+      gcodeLineNumber : this.gcodeLineNumber,
+      originalColor: this.color
+    };
   }
 
   getPoints() {

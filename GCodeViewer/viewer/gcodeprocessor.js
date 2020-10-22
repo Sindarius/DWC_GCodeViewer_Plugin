@@ -34,6 +34,9 @@ export default class {
         this.beforeRenderFunc;
         this.gcodeLineNumber = 0;
 
+        this.refreshTime = 5000;
+
+
         this.finalPass = false;
 
         this.extruderColors = [
@@ -232,6 +235,9 @@ export default class {
             colorArray = null;
 
             lineMesh.isVisible = true;
+            lineMesh.doNotSyncBoundingInfo = true;
+            lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
+            lineMesh.freezeNormals();
             lineMesh.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.ColorKind);
 
 
@@ -244,7 +250,7 @@ export default class {
                     if (that.renderIndex === 0) {
                         return;
                     } else
-                        if (Date.now() - lastUpdate < 5000 && !that.finalPass) {
+                        if (Date.now() - lastUpdate < that.refreshTime && !that.finalPass) {
                             return;
                         }
                         else {
@@ -308,21 +314,13 @@ export default class {
             var transparentMat = new BABYLON.StandardMaterial("transparentMaterial", scene);
             transparentMat.alpha = this.materialTransparency;
 
-            /*
-            var multiMaterial = new BABYLON.MultiMaterial("spsMultiMaterial", scene);
-            multiMaterial.subMaterials.push(solidMat);
-            multiMaterial.subMaterials.push(transparentMat);
-            spsMesh.material = multiMaterial;
-            */
-
             this.sps.setMultiMaterial([solidMat,transparentMat]);
-
             this.sps.setParticles();
             this.sps.computeSubMeshes();
-
             this.sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
             this.sps.mesh.freezeNormals();
             
+            this.sps.mesh.doNotSyncBoundingInfo = true;
             
             this.sps.updateParticle = function (particle) {
                 if (that.gcodeLineIndex[particle.idx] < that.gcodeLineNumber) {
@@ -338,7 +336,7 @@ export default class {
 
             this.beforeRenderFunc = function () {
                 if (that.liveTracking || that.finalPass) {
-                    if (Date.now() - lastUpdate < 5000 && !that.finalPass) {
+                    if (Date.now() - lastUpdate < that.refreshTime && !that.finalPass) {
                         return;
                     }
                     else {
@@ -403,7 +401,7 @@ export default class {
 
     doFinalPass(){
         this.gcodeLineNumber = Number.MAX_VALUE;
-        this.renderIndex = Number.MAX_VALUE;
+        this.renderIndex = this.gcodeLineIndex.length;
         this.finalPass = true;
     }
 

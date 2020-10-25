@@ -10,6 +10,7 @@ export default class {
     this.extruding = false;
     this.gcodeLineNumber = 0;
     this.color;
+    this.feedRate = 0;
   }
 
   length() {
@@ -60,6 +61,14 @@ export default class {
       originalColor: this.color
     };
   }
+
+  renderParticle(p){
+    p.position.x = this.start.x;
+    p.position.y = this.start.y;
+    p.position.z = this.start.z;
+    p.color = this.color;
+    }
+
 
   getPoints() {
     return {

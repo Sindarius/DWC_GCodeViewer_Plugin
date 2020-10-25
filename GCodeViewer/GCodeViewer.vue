@@ -23,6 +23,20 @@
                     <h3>Background</h3>
                     <gcodeviewer-color-picker :editcolor="backgroundColor" @updatecolor="(value) => updateBackground(value)"></gcodeviewer-color-picker>
                 </v-card>
+                <v-card>
+                  <h3>Render Mode</h3>
+                  <v-btn-toggle exclusive v-model="renderMode">
+                    <v-btn :value="1">Line</v-btn>
+                    <v-btn :value="2">3D</v-btn>
+                    <v-btn :value="3">Point</v-btn>
+                  </v-btn-toggle>
+                  <h3>Render n-th row</h3>  
+                  <v-btn-toggle exclusive v-model="nthRow">
+                    <v-btn :value="1">1</v-btn>
+                    <v-btn :value="2">2</v-btn>
+                    <v-btn :value="3">3</v-btn>
+                  </v-btn-toggle>
+                </v-card>
             </v-col>
             <v-col cols="10" block>
                 <canvas ref="viewerCanvas" class="babylon-canvas" />
@@ -32,189 +46,194 @@
 </template>
 
 <script>
+  //<v-row> <v-col>{{ move }}</v-col></v-row>
 
-//<v-row> <v-col>{{ move }}</v-col></v-row>
+  import gcodeViewer from "./viewer/gcodeviewer.js";
+  import { mapActions, mapState } from "vuex";
+  import Path from "../../utils/path.js";
+  import { StatusType, KinematicsName } from "../../store/machine/modelEnums";
 
-import gcodeViewer from "./viewer/gcodeviewer.js";
-import { mapActions, mapState } from "vuex";
-import Path from "../../utils/path.js";
-import { StatusType, KinematicsName } from "../../store/machine/modelEnums";
+  let viewer = {};
 
-
-let viewer = {};
-
-export default {
-  data: () => ({
-    extruderColors: [
-      "#00FFFFFF",
-      "#FF00FFFF",
-      "#FFFF00FF",
-      "#000000FF",
-      "#FFFFFFFF",
-    ],
-    backgroundColor: "#000000FF",
-    viewerHeight: "400px",
-    testValue: "Test",
-    loading: false,
-    testData: "",
-    showCursor: true,
-    showTravelLines: false,
-    selectedFile: "",
-  }),
-  computed: {
-    ...mapState("machine/model", ["job", "move", "state"]),
-    isJobRunning: (state) =>
-      state.state.status === StatusType.simulating ||
-      state.state.status === StatusType.processing,
-    visualizingCurrentJob: function (state) {
-      return state.job.file.fileName === this.selectedFile;
-    },
-    filePosition: (state) => state.job.filePosition,
-    fileSize: (state) => state.job.file.size,
-    kinematicsName: (state) => state.move.kinematics.name,
-    isDelta() {
-      return ( 
-        this.kinematicsName === KinematicsName.delta ||
-        this.kinematicsName === KinematicsName.rotaryDelta
-      );
-    },
-  },
-  mounted() {
-    viewer = new gcodeViewer(this.$refs.viewerCanvas);
-    viewer.isDelta = this.isDelta;
-    viewer.init();
-
-    this.extruderColors = viewer.getExtruderColors();
-    this.backgroundColor = viewer.getBackgroundColor();
-
-    this.viewModelEvent = async (path) => {
-      this.selectedFile = path;
-      this.loading = true;
-      let blob = await this.machineDownload({
-        filename: Path.combine(path),
-        type: "text",
-      });
-      try {
-        await viewer.processFile(blob);
-      } finally {
-        this.loading = false;
-      }
-    };
-
-    viewer.setLiveTracking(this.isJobRunning && this.visualizingCurrentJob);
-
-    this.$root.$on("view-3d-model", this.viewModelEvent);
-
-    this.$nextTick(() => {
-      this.updateControlHeight();
-      viewer.saveExtruderColors(this.extruderColors);
-    });
-  },
-  beforeDestroy() {
-    this.$root.$off("view-3d-model", this.viewModelEvent);
-  },
-  methods: {
-    ...mapActions("machine", {
-      machineDownload: "download",
-    }),
-    updateColor(index, value) {
-      this.$set(this.extruderColors, index, value);
-      viewer.saveExtruderColors(this.extruderColors);
-    },
-    updateBackground(value) {
-      this.backgroundColor = value;
-      viewer.setBackgroundColor(this.backgroundColor);
-    },
-    updateControlHeight() {
-      this.viewerHeight = this.$refs.viewerCanvas.clientHeight + "px";
-    },
-    resize() {
-      if (Object.keys(viewer).length !== 0) {
-        viewer.resize();
-        this.updateControlHeight();
-      }
-    },
-    reset() {
-      if (Object.keys(viewer).length !== 0) {
-        viewer.resetCamera();
-        this.updateControlHeight();
-      }
-    },
-    async loadRunningJob() {
-      this.loading = true;
-      this.selectedFile = this.job.file.fileName;
-      let blob = await this.machineDownload({
-        filename: this.job.file.fileName,
-        type: "text",
-      });
-      try {
-        await viewer.processFile(blob);
-      } finally {
-        this.loading = false;
-      }
-    },
-    resetExtruderColors() {
-      this.extruderColors = [
+  export default {
+    data: () => ({
+      extruderColors: [
         "#00FFFFFF",
         "#FF00FFFF",
         "#FFFF00FF",
         "#000000FF",
         "#FFFFFFFF",
-      ];
-      viewer.saveExtruderColors(this.extruderColors);
+      ],
+      backgroundColor: "#000000FF",
+      viewerHeight: "400px",
+      testValue: "Test",
+      loading: false,
+      testData: "",
+      showCursor: true,
+      showTravelLines: false,
+      selectedFile: "",
+      renderMode: 1,
+      nthRow: 1,
+    }),
+    computed: {
+      ...mapState("machine/model", ["job", "move", "state"]),
+      isJobRunning: (state) =>
+        state.state.status === StatusType.simulating ||
+        state.state.status === StatusType.processing,
+      visualizingCurrentJob: function (state) {
+        return state.job.file.fileName === this.selectedFile;
+      },
+      filePosition: (state) => state.job.filePosition,
+      fileSize: (state) => state.job.file.size,
+      kinematicsName: (state) => state.move.kinematics.name,
+      isDelta() {
+        return (
+          this.kinematicsName === KinematicsName.delta ||
+          this.kinematicsName === KinematicsName.rotaryDelta
+        );
+      },
     },
-    reloadviewer() {
-      if (this.loading) {
-        return;
-      }
-      this.loading = true;
-      viewer.reload().finally(() => {
-        this.loading = false;
-        viewer.setCursorVisiblity(this.showCursor);
-        viewer.showTravelLines(this.showTravelLines);
+    mounted() {
+      viewer = new gcodeViewer(this.$refs.viewerCanvas);
+      viewer.isDelta = this.isDelta;
+      viewer.init();
+
+      this.extruderColors = viewer.getExtruderColors();
+      this.backgroundColor = viewer.getBackgroundColor();
+
+      this.viewModelEvent = async (path) => {
+        this.selectedFile = path;
+        this.loading = true;
+        let blob = await this.machineDownload({
+          filename: Path.combine(path),
+          type: "text",
+        });
+        try {
+          await viewer.processFile(blob);
+        } finally {
+          this.loading = false;
+        }
+      };
+
+      viewer.setLiveTracking(this.isJobRunning && this.visualizingCurrentJob);
+
+      this.$root.$on("view-3d-model", this.viewModelEvent);
+
+      this.$nextTick(() => {
+        this.updateControlHeight();
+        viewer.saveExtruderColors(this.extruderColors);
       });
     },
-  },
-  watch: {
-    move: {
-      handler(newValue) {
-        var newPosition = newValue.axes.map((item) => ({
-          axes: item.letter,
-          position: item.machinePosition,
-        }));
-        viewer.updateToolPosition(newPosition);
+    beforeDestroy() {
+      this.$root.$off("view-3d-model", this.viewModelEvent);
+    },
+    methods: {
+      ...mapActions("machine", {
+        machineDownload: "download",
+      }),
+      updateColor(index, value) {
+        this.$set(this.extruderColors, index, value);
+        viewer.saveExtruderColors(this.extruderColors);
       },
-      deep: true,
+      updateBackground(value) {
+        this.backgroundColor = value;
+        viewer.setBackgroundColor(this.backgroundColor);
+      },
+      updateControlHeight() {
+        this.viewerHeight = this.$refs.viewerCanvas.clientHeight + "px";
+      },
+      resize() {
+        if (Object.keys(viewer).length !== 0) {
+          viewer.resize();
+          this.updateControlHeight();
+        }
+      },
+      reset() {
+        if (Object.keys(viewer).length !== 0) {
+          viewer.resetCamera();
+          this.updateControlHeight();
+        }
+      },
+      async loadRunningJob() {
+        this.loading = true;
+        this.selectedFile = this.job.file.fileName;
+        let blob = await this.machineDownload({
+          filename: this.job.file.fileName,
+          type: "text",
+        });
+        try {
+          await viewer.processFile(blob);
+        } finally {
+          this.loading = false;
+        }
+      },
+      resetExtruderColors() {
+        this.extruderColors = [
+          "#00FFFFFF",
+          "#FF00FFFF",
+          "#FFFF00FF",
+          "#000000FF",
+          "#FFFFFFFF",
+        ];
+        viewer.saveExtruderColors(this.extruderColors);
+      },
+      reloadviewer() {
+        if (this.loading) {
+          return;
+        }
+        this.loading = true;
+        viewer.reload().finally(() => {
+          this.loading = false;
+          viewer.setCursorVisiblity(this.showCursor);
+          viewer.showTravelLines(this.showTravelLines);
+        });
+      },
     },
-    showCursor: function (newValue) {
-      viewer.setCursorVisiblity(newValue);
+    watch: {
+      move: {
+        handler(newValue) {
+          var newPosition = newValue.axes.map((item) => ({
+            axes: item.letter,
+            position: item.machinePosition,
+          }));
+          viewer.updateToolPosition(newPosition);
+        },
+        deep: true,
+      },
+      showCursor: function (newValue) {
+        viewer.setCursorVisiblity(newValue);
+      },
+      showTravelLines: (newVal) => {
+        viewer.toggleTravels(newVal);
+      },
+      visualizingCurrentJob: function (newValue) {
+        viewer.setLiveTracking(this.isJobRunning && newValue);
+        if (newValue == false) {
+          viewer.doFinalPass();
+        }
+      },
+      filePosition: function (newValue) {
+        let progressPercent = newValue / this.fileSize;
+        viewer.updatePrintProgress(progressPercent);
+      },
+      renderMode: function (newValue) {
+        viewer.gcodeProcessor.meshVersion = newValue;
+        viewer.reload();
+      },
+      nthRow: function (newValue) {
+        viewer.gcodeProcessor.everyNthRow = newValue;
+      },
     },
-    showTravelLines: (newVal) => {
-      viewer.toggleTravels(newVal);
-    },
-    visualizingCurrentJob: function (newValue) {
-      viewer.setLiveTracking(this.isJobRunning && newValue);
-      if(newValue == false){
-        viewer.doFinalPass();
-      }
-    },
-    filePosition: function (newValue) {
-      let progressPercent = newValue / this.fileSize;
-      viewer.updatePrintProgress(progressPercent);
-    },
-  },
-};
+  };
 </script>
 
 <style scoped>
-.control-panel {
-  overflow-y: auto;
-}
+  .control-panel {
+    overflow-y: auto;
+  }
 
-.babylon-canvas {
-  width: 100%;
-  min-height: 400px;
-}
-
-
+  .babylon-canvas {
+    width: 100%;
+    min-height: 400px;
+  }
 </style>

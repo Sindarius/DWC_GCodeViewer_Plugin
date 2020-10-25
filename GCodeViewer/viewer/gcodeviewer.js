@@ -40,6 +40,7 @@ export default class {
         this.engine = new BABYLON.Engine(this.canvas, true, { doNotHandleContextLost: true });
         this.engine.enableOfflineSupport = false;
         this.scene = new BABYLON.Scene(this.engine);
+        this.scene.debugLayer.show();
         this.scene.clearColor = BABYLON.Color3.FromHexString(this.getBackgroundColor());
 
         // Add a camera to the scene and attach it to the canvas
@@ -90,26 +91,28 @@ export default class {
     }
 
     processFile(fileContents) {
-        return new Promise(resolve => {
-            this.clearScene();
-            this.refreshUI();
-
-            this.fileData = fileContents;
-            this.gcodeProcessor.setExtruderColors(this.getExtruderColors());
-            this.gcodeProcessor.processGcodeFile(fileContents);
-            this.gcodeProcessor.createScene(this.scene);
-            this.maxHeight = this.gcodeProcessor.getMaxHeight();
-            this.toggleTravels(this.travelVisible);
-            this.setCursorVisiblity(this.toolCursorVisible)
-            resolve();
-        });
+        this.clearScene();
+        this.refreshUI();
+        this.fileData = fileContents;
+        this.gcodeProcessor.setExtruderColors(this.getExtruderColors());
+        this.gcodeProcessor.scene = this.scene;
+        this.gcodeProcessor.processGcodeFile(fileContents);
+        this.gcodeProcessor.createScene(this.scene);
+        this.maxHeight = this.gcodeProcessor.getMaxHeight();
+        this.toggleTravels(this.travelVisible);
+        this.setCursorVisiblity(this.toolCursorVisible);
     }
 
     toggleTravels(visible) {
         var mesh = this.scene.getMeshByName("travels");
         if (mesh !== undefined) {
-            mesh.isVisible = visible;
-            this.travelVisible = visible;
+            try {
+                mesh.isVisible = visible;
+                this.travelVisible = visible;
+            }
+            catch {
+                console.log("Travel Mesh Error");
+            }
 
         }
     }
@@ -230,7 +233,8 @@ export default class {
     reload() {
         return new Promise(resolve => {
             this.clearScene();
-            this.processFile(this.fileData).then(resolve);
+            this.processFile(this.fileData);
+            resolve();
         });
     }
     getLineCount() {

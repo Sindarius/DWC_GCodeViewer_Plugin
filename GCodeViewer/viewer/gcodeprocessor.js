@@ -7,17 +7,29 @@ import gcodeLine from './gcodeline'
 export default class {
     constructor() {
         this.currentPosition = new BABYLON.Vector3(0, 0, 0);
-        this.color = [];
+        this.currentColor = new BABYLON.Color4(1, 1, 1, 1);
+
+        this.test = true;
+
+        // 1 - Line
+        // 2 - 3D Line
+        // 3 - Point Cloud
+        this.meshVersion = 1;
+
         this.absolute = true; //Track if we are in relative or absolute mode.
+
+        //this.color = [];
+
         this.lines = [];
         this.travels = [];
-        this.currentColor = new BABYLON.Color4(1, 1, 1, 1);
         this.sps;
-        this.layerDictionary = {};
         this.maxHeight = 0;
         this.lineCount = 0;
         this.renderMode = "";
         this.extruderCount = 5;
+
+        this.layerDictionary = {};
+
 
         //We'll look at the last 2 layer heights for now to determine layer height.
         this.previousLayerHeight = 0;
@@ -30,12 +42,12 @@ export default class {
         this.gcodeLineIndex = [];
         this.renderIndex = 0;
         this.lastRenderIndex = 0;
-        this.meshVersion = 2;
         this.beforeRenderFunc;
         this.gcodeLineNumber = 0;
 
         this.refreshTime = 5000;
 
+        this.lineLengthTolerance = 0.05;
 
         this.finalPass = false;
 
@@ -46,6 +58,28 @@ export default class {
             new BABYLON.Color4(0, 0, 0, 1), //k
             new BABYLON.Color4(1, 1, 1, 1) //w
         ];
+
+        this.lineMeshIndex = 0;
+        this.scene;
+
+        //Mesh Breaking
+        this.meshBreakPoint = 20000;
+
+        //average feed rate trimming
+        this.feedRateTrimming = false;
+        this.currentFeedRate = 0;
+        this.feedValues = 0;
+        this.numChanges = 0;
+        this.avgFeed = 0;
+        this.underspeedPercent = 1;
+
+        //render every nth row
+        this.everyNthRow = 0;
+        this.currentNRow = -1;
+        this.currentZ = 0;
+
+        this.renderTravels = false;
+
     }
 
     setExtruderColors(colors) {
@@ -64,7 +98,11 @@ export default class {
     getMaxHeight() {
         return this.maxHeight;
     }
+
     processGcodeFile(file) {
+
+        this.currentZ = 0;
+
         if (file === undefined || file === null || file.length === 0) {
             return;
         }
@@ -82,9 +120,9 @@ export default class {
                 this.processLine(line, lineNo);
             }
         }
-
         file = {}; //Clear1 out the file.
     }
+
 
     processLine(tokenString, lineNumber) {
 
@@ -124,20 +162,52 @@ export default class {
                             case "E":
                                 line.extruding = true;
                                 break;
+                            case "F":
+                                this.currentFeedRate = Number(token.substring(1));
+                                break;
                         }
                     }
+
                     line.end = this.currentPosition.clone();
 
-                    if (line.extruding && line.length() >= 0.01) {
+                    if (this.feedRateTrimming) {
+                        this.feedValues += this.currentFeedRate;
+                        this.numChanges++;
+                        this.avgFeed = (this.feedValues / this.numChanges) * this.underspeedPercent;
+                    }
+
+                    if (this.test && line.extruding) {
+                        this.test = false;
+                        console.log(line);
+                        console.log(this.currentPosition);
+                    }
+
+                    //Nth row exclusion
+                    if (this.everyNthRow > 1 && line.extruding) {
+                        if (this.currentPosition.y > this.currentZ) {
+                            console.log("Current Z " + this.currentPosition.y);
+                            this.currentNRow++;
+                            this.currentZ = this.currentPosition.y;
+                            console.log("NRow " + this.currentNRow);
+                        }
+
+                        if (this.currentNRow % this.everyNthRow !== 0) {
+                            return;
+                        }
+                    }
+
+                    if (line.extruding &&
+                        line.length() >= this.lineLengthTolerance &&
+                        (!this.feedRateTrimming || (this.currentFeedRate < this.avgFeed)) &&
+                        (this.showTravels || line.extruding)) {
                         line.color = this.currentColor.clone();
                         this.lines.push(line);
-
                         if (this.currentPosition.y > this.currentLayerHeight && this.currentPosition.y < 20) {
                             this.previousLayerHeight = this.currentLayerHeight;
                             this.currentLayerHeight = this.currentPosition.y;
                         }
 
-                    } else {
+                    } else if (this.showTravels && !line.extruding) {
                         line.color = new BABYLON.Color4(1, 0, 0, 1);
                         this.travels.push(line);
                     }
@@ -194,10 +264,19 @@ export default class {
                 this.currentColor = this.extruderColors[extruder].clone();
             }
         }
+
+        //break lines into manageable meshes at cost of extra draw calls
+        if (true && this.lines.length >= this.meshBreakPoint) {
+            //lets build the mesh
+            this.lineMeshIndex++;
+            this.createScene(this.scene);
+        }
+
     }
 
     createScene(scene) {
-        this.meshVersion = 2;
+        console.log(this.lines.length);
+        //this.meshVersion = 1; //2
         this.lastRenderIndex = 0;
         let that = this;
         let lastUpdate = Date.now();
@@ -211,7 +290,6 @@ export default class {
         if (this.meshVersion === 1) {
             this.renderMode = "Line Rendering";
 
-
             //Extrusion
             let lineArray = [];
             let colorArray = [];
@@ -224,10 +302,10 @@ export default class {
                 colorArray.push(data.colors);
             }
             var lineMesh = BABYLON.MeshBuilder.CreateLineSystem(
-                "gcodemodel", {
+                "gcodemodel" + this.lineMeshIndex, {
                 lines: lineArray,
                 colors: colorArray,
-                updatable: true,
+                updatable: false,
                 useVertexColor: true
             }, scene);
 
@@ -272,7 +350,7 @@ export default class {
                             }
                             lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
                             that.lastRenderIndex = that.renderIndex;
-                            if(that.finalPass) that.finalPass = false;
+                            if (that.finalPass) that.finalPass = false;
                         }
                 }
             }
@@ -288,17 +366,17 @@ export default class {
                 scene
             );
 
-            var l = this.lines;
+            let l = this.lines;
 
             this.gcodeLineIndex = new Array(l.length);
-            var particleBuilder = function (particle, i, s) {
+            let particleBuilder = function (particle, i, s) {
                 l[s].renderLineV3(particle);
-                that.gcodeLineIndex[s] = particle.props.gcodeLineNumber; 
+                that.gcodeLineIndex[s] = particle.props.gcodeLineNumber;
             };
 
-            
 
-            this.sps = new BABYLON.SolidParticleSystem("gcodemodel", scene, {
+
+            this.sps = new BABYLON.SolidParticleSystem("gcodemodel" + this.meshLineIndex, scene, {
                 updatable: true,
                 enableMultiMaterial: true,
             });
@@ -310,25 +388,24 @@ export default class {
             this.sps.buildMesh();
 
             //Build out solid and transparent material.
-            var solidMat = new BABYLON.StandardMaterial("solidMaterial", scene);
-            var transparentMat = new BABYLON.StandardMaterial("transparentMaterial", scene);
+            const solidMat = new BABYLON.StandardMaterial("solidMaterial", scene);
+            const transparentMat = new BABYLON.StandardMaterial("transparentMaterial", scene);
             transparentMat.alpha = this.materialTransparency;
-
-            this.sps.setMultiMaterial([solidMat,transparentMat]);
+            this.sps.setMultiMaterial([solidMat, transparentMat]);
             this.sps.setParticles();
             this.sps.computeSubMeshes();
             this.sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
             this.sps.mesh.freezeNormals();
-            
+
             this.sps.mesh.doNotSyncBoundingInfo = true;
-            
+
             this.sps.updateParticle = function (particle) {
                 if (that.gcodeLineIndex[particle.idx] < that.gcodeLineNumber) {
                     particle.color = new BABYLON.Color4(1, 1, 1, 1);
                     particle.materialIndex = 0;
                 }
-                else{
-                    particle.color = new BABYLON.Color4(particle.color.r,particle.color.g,particle.color.b, 0.5);
+                else {
+                    particle.color = new BABYLON.Color4(particle.color.r, particle.color.g, particle.color.b, 0.5);
                     particle.materialIndex = 1;
                 }
             }
@@ -343,21 +420,47 @@ export default class {
                         lastUpdate = Date.now();
                         that.sps.setParticles();
                         that.sps.computeSubMeshes();
-                        if(that.finalPass) that.finalPass = false;
+                        if (that.finalPass) that.finalPass = false;
                     }
                 }
             }
 
             scene.registerBeforeRender(this.beforeRenderFunc);
 
+        } else if (this.meshVersion === 3) { //point cloud
+            this.sps = new BABYLON.PointsCloudSystem("pcs" + this.meshLineIndex, 1, scene);
+
+            let l = this.lines;
+
+            let particleBuilder = function (particle, i, s) {
+                l[s].renderParticle(particle);
+                //               that.gcodeLineIndex[s] = particle.props.gcodeLineNumber; 
+            };
+
+            this.sps.addPoints(this.lines.length, particleBuilder);
+
+            this.sps.buildMeshAsync().then((mesh) => {
+                mesh.material.pointSize = 2;
+            });
+
 
 
         }
-        this.createTravelLines(scene);
+
+        if (this.renderTravels) {
+            this.createTravelLines(scene);
+        }
+        this.scene.clearCachedVertexData();
+
         this.lines = [];
         this.travels = [];
 
+        this.scene.render();
+
     }
+
+
+
 
     createTravelLines(scene) {
         //Travels
@@ -399,7 +502,7 @@ export default class {
         this.liveTracking = enabled;
     }
 
-    doFinalPass(){
+    doFinalPass() {
         this.gcodeLineNumber = Number.MAX_VALUE;
         this.renderIndex = this.gcodeLineIndex.length;
         this.finalPass = true;

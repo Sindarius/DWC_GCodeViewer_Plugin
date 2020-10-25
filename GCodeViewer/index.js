@@ -1,5 +1,5 @@
 import { registerRoute } from '../../routes'
-import { registerPluginContextMenuItem, ContextMenuType } from '../../store'
+import { registerPluginContextMenuItem, ContextMenuType } from '../../store/uiinjection.js'
 import GCodeViewer from './GCodeViewer.vue'
 import ColorPicker from './ColorPicker.vue'
 import Vue from 'vue'

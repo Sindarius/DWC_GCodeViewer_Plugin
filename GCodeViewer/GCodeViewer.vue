@@ -1,13 +1,22 @@
 <template>
-    <v-container fill-height>
         <v-row justify="center" class="mt-3" dense v-resize="resize">
             <v-col cols="2" class="control-panel" :style="{ 'max-height': viewerHeight }">
                 <v-card>
                     <v-btn @click="reset" block>Reset View</v-btn>
                     <v-btn @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
                     <v-btn @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block>Load Current Job</v-btn>
+                    <v-btn @click="clearScene" v-show="debugVisible" :disabled="loading" block>Clear Scene</v-btn>
                     <v-checkbox v-model="showCursor" label="Show Cursor"></v-checkbox>
                     <v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox>
+                </v-card>
+                <v-card>
+                  <h3>Render Quality</h3>
+                  <v-btn-toggle exclusive mandatory v-model="renderQuality">
+                    <v-btn :value="1">Low</v-btn>
+                    <v-btn :value="2">Medium</v-btn>
+                    <v-btn :value="3">High</v-btn>
+                    <v-btn :value="4">Max</v-btn>
+                  </v-btn-toggle>
                 </v-card>
                 <v-card v-for="(extruder, index) in extruderColors" :key="index">
                     <h3>Tool {{ index.axes }}</h3>
@@ -23,14 +32,14 @@
                     <h3>Background</h3>
                     <gcodeviewer-color-picker :editcolor="backgroundColor" @updatecolor="(value) => updateBackground(value)"></gcodeviewer-color-picker>
                 </v-card>
-                <v-card>
-                  <h3>Render Mode</h3>
+                <v-card v-show="debugVisible">
+                  <h3>Render Mode (Disabled)</h3>
                   <v-btn-toggle exclusive v-model="renderMode">
                     <v-btn :value="1">Line</v-btn>
                     <v-btn :value="2">3D</v-btn>
                     <v-btn :value="3">Point</v-btn>
                   </v-btn-toggle>
-                  <h3>Render n-th row</h3>  
+                  <h3>Render n-th row (Disabled)</h3>  
                   <v-btn-toggle exclusive v-model="nthRow">
                     <v-btn :value="1">1</v-btn>
                     <v-btn :value="2">2</v-btn>
@@ -39,10 +48,9 @@
                 </v-card>
             </v-col>
             <v-col cols="10" block>
-                <canvas ref="viewerCanvas" class="babylon-canvas" />
+                <canvas ref="viewerCanvas" class="babylon-canvas"/>
             </v-col>
         </v-row>
-    </v-container>
 </template>
 
 <script>
@@ -74,6 +82,8 @@
       selectedFile: "",
       renderMode: 1,
       nthRow: 1,
+      renderQuality: 0,
+      debugVisible: false,
     }),
     computed: {
       ...mapState("machine/model", ["job", "move", "state"]),
@@ -97,6 +107,9 @@
       viewer = new gcodeViewer(this.$refs.viewerCanvas);
       viewer.isDelta = this.isDelta;
       viewer.init();
+
+      this.renderQuality = viewer.renderQuality;
+      console.log(this.renderQuality);
 
       this.extruderColors = viewer.getExtruderColors();
       this.backgroundColor = viewer.getBackgroundColor();
@@ -185,8 +198,11 @@
         viewer.reload().finally(() => {
           this.loading = false;
           viewer.setCursorVisiblity(this.showCursor);
-          viewer.showTravelLines(this.showTravelLines);
+          viewer.toggleTravels(this.showTravelLines);
         });
+      },
+      clearScene() {
+        viewer.clearScene();
       },
     },
     watch: {
@@ -217,11 +233,16 @@
         viewer.updatePrintProgress(progressPercent);
       },
       renderMode: function (newValue) {
-        viewer.gcodeProcessor.meshVersion = newValue;
+        viewer.gcodeProcessor.renderVersion = newValue;
         viewer.reload();
       },
       nthRow: function (newValue) {
         viewer.gcodeProcessor.everyNthRow = newValue;
+      },
+      renderQuality: function (newValue) {
+        if (viewer.renderQuality !== newValue) {
+          viewer.updateRenderQuality(newValue);
+        }
       },
     },
   };
@@ -234,6 +255,6 @@
 
   .babylon-canvas {
     width: 100%;
-    min-height: 400px;
+    min-height: 300px;
   }
 </style>

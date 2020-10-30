@@ -1,12 +1,12 @@
 /* eslint-disable no-unused-vars */
-"use strict";
+'use strict';
 
-import * as BABYLON from 'babylonjs'
+import * as BABYLON from 'babylonjs';
 
 export default class {
   constructor() {
-    this.start; //babylon vector3
-    this.end; //babylon vector3
+    this.start;
+    this.end;
     this.extruding = false;
     this.gcodeLineNumber = 0;
     this.color;
@@ -19,28 +19,28 @@ export default class {
 
   renderLine(scene) {
     var points = [this.start, this.end];
-    let lineMesh = BABYLON.Mesh.CreateLines("lines", points, scene);
+    let lineMesh = BABYLON.Mesh.CreateLines('lines', points, scene);
     lineMesh.enableEdgesRendering();
     lineMesh.edgesWidth = 10;
     lineMesh.edgesColor = new BABYLON.Color4(1, 1, 0, 1);
   }
 
   renderLineV2(scene) {
-    var tube = BABYLON.MeshBuilder.CreateTube("tube", {
+    var tube = BABYLON.MeshBuilder.CreateTube('tube', {
       path: [this.start, this.end],
       radius: 0.2,
       tesselation: 4,
       sideOrientation: BABYLON.Mesh.FRONTSIDE,
-      updatable: false
+      updatable: false,
     });
     tube.doNotSyncBoundingInfo = true;
     return tube;
   }
 
   distanceVector(v1, v2) {
-    var dx = v1.x - v2.x;
-    var dy = v1.y - v2.y;
-    var dz = v1.z - v2.z;
+    let dx = v1.x - v2.x;
+    let dy = v1.y - v2.y;
+    let dz = v1.z - v2.z;
 
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
@@ -57,23 +57,22 @@ export default class {
     p.color = this.color;
     p.materialIndex = 0;
     p.props = {
-      gcodeLineNumber : this.gcodeLineNumber,
-      originalColor: this.color
+      gcodeLineNumber: this.gcodeLineNumber,
+      originalColor: this.color,
     };
   }
 
-  renderParticle(p){
+  renderParticle(p) {
     p.position.x = this.start.x;
     p.position.y = this.start.y;
     p.position.z = this.start.z;
     p.color = this.color;
-    }
-
+  }
 
   getPoints() {
     return {
       points: [this.start, this.end],
-      colors: [this.color, this.color]
+      colors: [this.color, this.color],
     };
   }
 
@@ -83,5 +82,4 @@ export default class {
     }
     return new BABYLON.Color4(1, 0, 0, 1);
   }
-
 }

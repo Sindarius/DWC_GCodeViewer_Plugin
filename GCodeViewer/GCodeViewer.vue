@@ -7,16 +7,18 @@
                     <v-btn @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block>Load Current Job</v-btn>
                     <v-btn @click="clearScene" v-show="debugVisible" :disabled="loading" block>Clear Scene</v-btn>
                     <v-checkbox v-model="showCursor" label="Show Cursor"></v-checkbox>
-                    <v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox>
+                    <!--v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox-->
                 </v-card>
                 <v-card>
                   <h3>Render Quality</h3>
-                  <v-btn-toggle exclusive mandatory v-model="renderQuality">
+                  <v-btn-toggle exclusive mandatory v-model="renderQuality" class="btn-toggle">
                     <v-btn :value="1">Low</v-btn>
                     <v-btn :value="2">Medium</v-btn>
                     <v-btn :value="3">High</v-btn>
-                    <v-btn :value="4">Max</v-btn>
+                    <v-btn :value="4">Ultra</v-btn>
+                    <v-btn :value="5">Max</v-btn>
                   </v-btn-toggle>
+                  <v-checkbox v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
                 </v-card>
                 <v-card v-for="(extruder, index) in extruderColors" :key="index">
                     <h3>Tool {{ index.axes }}</h3>
@@ -27,6 +29,12 @@
                 </v-card>
                 <v-card>
                     <v-btn block @click="resetExtruderColors">Reset Extruder Colors</v-btn>
+                </v-card>
+                <v-card>
+                    <v-slider min="0.1" :max="maxHeight" v-model="sliderHeight" thumb-label thumb-size="24" label="Height Slider" step="0.1"></v-slider>
+                    <v-slider min="0.1" :max="maxHeight" v-model="sliderBottomHeight" thumb-label thumb-size="24" label="Height Slider" step="0.1"></v-slider>
+
+                    <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
                 </v-card>
                 <v-card>
                     <h3>Background</h3>
@@ -56,40 +64,37 @@
 <script>
   //<v-row> <v-col>{{ move }}</v-col></v-row>
 
-  import gcodeViewer from "./viewer/gcodeviewer.js";
-  import { mapActions, mapState } from "vuex";
-  import Path from "../../utils/path.js";
-  import { StatusType, KinematicsName } from "../../store/machine/modelEnums";
+  import gcodeViewer from './viewer/gcodeviewer.js';
+  import { mapActions, mapState } from 'vuex';
+  import Path from '../../utils/path.js';
+  import { StatusType, KinematicsName } from '../../store/machine/modelEnums';
 
   let viewer = {};
 
   export default {
     data: () => ({
-      extruderColors: [
-        "#00FFFFFF",
-        "#FF00FFFF",
-        "#FFFF00FF",
-        "#000000FF",
-        "#FFFFFFFF",
-      ],
-      backgroundColor: "#000000FF",
-      viewerHeight: "400px",
-      testValue: "Test",
+      extruderColors: ['#00FFFFFF', '#FF00FFFF', '#FFFF00FF', '#000000FF', '#FFFFFFFF'],
+      backgroundColor: '#000000FF',
+      viewerHeight: '400px',
+      testValue: 'Test',
       loading: false,
-      testData: "",
+      testData: '',
       showCursor: true,
       showTravelLines: false,
-      selectedFile: "",
+      selectedFile: '',
       renderMode: 1,
       nthRow: 1,
       renderQuality: 0,
       debugVisible: false,
+      maxHeight: 0,
+      sliderHeight: 0,
+      sliderBottomHeight: 0,
+      liveZTracking: false,
+      forceWireMode: false,
     }),
     computed: {
-      ...mapState("machine/model", ["job", "move", "state"]),
-      isJobRunning: (state) =>
-        state.state.status === StatusType.simulating ||
-        state.state.status === StatusType.processing,
+      ...mapState('machine/model', ['job', 'move', 'state']),
+      isJobRunning: (state) => state.state.status === StatusType.simulating || state.state.status === StatusType.processing,
       visualizingCurrentJob: function (state) {
         return state.job.file.fileName === this.selectedFile;
       },
@@ -97,10 +102,7 @@
       fileSize: (state) => state.job.file.size,
       kinematicsName: (state) => state.move.kinematics.name,
       isDelta() {
-        return (
-          this.kinematicsName === KinematicsName.delta ||
-          this.kinematicsName === KinematicsName.rotaryDelta
-        );
+        return this.kinematicsName === KinematicsName.delta || this.kinematicsName === KinematicsName.rotaryDelta;
       },
     },
     mounted() {
@@ -109,8 +111,6 @@
       viewer.init();
 
       this.renderQuality = viewer.renderQuality;
-      console.log(this.renderQuality);
-
       this.extruderColors = viewer.getExtruderColors();
       this.backgroundColor = viewer.getBackgroundColor();
 
@@ -119,10 +119,12 @@
         this.loading = true;
         let blob = await this.machineDownload({
           filename: Path.combine(path),
-          type: "text",
+          type: 'text',
         });
         try {
           await viewer.processFile(blob);
+          this.maxHeight = viewer.getMaxHeight();
+          this.sliderHeight = this.maxHeight;
         } finally {
           this.loading = false;
         }
@@ -130,7 +132,7 @@
 
       viewer.setLiveTracking(this.isJobRunning && this.visualizingCurrentJob);
 
-      this.$root.$on("view-3d-model", this.viewModelEvent);
+      this.$root.$on('view-3d-model', this.viewModelEvent);
 
       this.$nextTick(() => {
         this.updateControlHeight();
@@ -138,11 +140,11 @@
       });
     },
     beforeDestroy() {
-      this.$root.$off("view-3d-model", this.viewModelEvent);
+      this.$root.$off('view-3d-model', this.viewModelEvent);
     },
     methods: {
-      ...mapActions("machine", {
-        machineDownload: "download",
+      ...mapActions('machine', {
+        machineDownload: 'download',
       }),
       updateColor(index, value) {
         this.$set(this.extruderColors, index, value);
@@ -153,7 +155,7 @@
         viewer.setBackgroundColor(this.backgroundColor);
       },
       updateControlHeight() {
-        this.viewerHeight = this.$refs.viewerCanvas.clientHeight + "px";
+        this.viewerHeight = this.$refs.viewerCanvas.clientHeight + 'px';
       },
       resize() {
         if (Object.keys(viewer).length !== 0) {
@@ -172,22 +174,19 @@
         this.selectedFile = this.job.file.fileName;
         let blob = await this.machineDownload({
           filename: this.job.file.fileName,
-          type: "text",
+          type: 'text',
         });
         try {
+          viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
           await viewer.processFile(blob);
+          this.maxHeight = viewer.getMaxHeight();
+          this.sliderHeight = this.maxHeight;
         } finally {
           this.loading = false;
         }
       },
       resetExtruderColors() {
-        this.extruderColors = [
-          "#00FFFFFF",
-          "#FF00FFFF",
-          "#FFFF00FF",
-          "#000000FF",
-          "#FFFFFFFF",
-        ];
+        this.extruderColors = ['#00FFFFFF', '#FF00FFFF', '#FFFF00FF', '#000000FF', '#FFFFFFFF'];
         viewer.saveExtruderColors(this.extruderColors);
       },
       reloadviewer() {
@@ -195,6 +194,7 @@
           return;
         }
         this.loading = true;
+        viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
         viewer.reload().finally(() => {
           this.loading = false;
           viewer.setCursorVisiblity(this.showCursor);
@@ -213,6 +213,9 @@
             position: item.machinePosition,
           }));
           viewer.updateToolPosition(newPosition);
+          if (this.liveZTracking) {
+            viewer.setZClipPlane(viewer.toolCursor.absolutePosition.y, 0);
+          }
         },
         deep: true,
       },
@@ -242,7 +245,16 @@
       renderQuality: function (newValue) {
         if (viewer.renderQuality !== newValue) {
           viewer.updateRenderQuality(newValue);
+          this.reloadviewer();
         }
+      },
+      sliderHeight: function (newValue) {
+        if (this.sliderBottomHeight > newValue) this.sliderBottomHeight = newValue - 1;
+        viewer.setZClipPlane(newValue, this.sliderBottomHeight);
+      },
+      sliderBottomHeight: function (newValue) {
+        if (this.sliderHeight < newValue) this.sliderHeight = newValue + 1;
+        viewer.setZClipPlane(this.sliderHeight, newValue);
       },
     },
   };
@@ -256,5 +268,9 @@
   .babylon-canvas {
     width: 100%;
     min-height: 300px;
+  }
+
+  .btn-toggle {
+    flex-direction: column;
   }
 </style>

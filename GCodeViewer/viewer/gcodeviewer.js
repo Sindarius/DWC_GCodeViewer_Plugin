@@ -21,13 +21,8 @@ export default class {
     this.travelVisible = false;
     this.isDelta = false;
     this.debug = false;
-
-    //Render Quality Settings
-    //1 - Cap at 5mil
-    //2 - Cap at 20mil
-    //3 - Cap at 50mil
-    //4 - Unlimited
-
+    this.zTopClipValue;
+    this.zBottomClipValue;
     this.renderQuality = localStorage.getItem('renderQuality');
     if (this.renderQuality === undefined || this.renderQuality === null) {
       this.renderQuality = 1;
@@ -43,8 +38,14 @@ export default class {
       this.scene.activeCamera = this.flyCamera;
     }
   }
-  setZClipPlane(value) {
-    this.scene.clipPlane = new BABYLON.Plane(0, 1, 0, -value);
+  setZClipPlane(top, bottom) {
+    this.zTopClipValue = -top;
+    this.zBottomClipValue = bottom;
+    if (bottom > top) {
+      this.zTopClipValue = bottom + 1;
+    }
+    this.scene.clipPlane = new BABYLON.Plane(0, 1, 0, this.zTopClipValue);
+    this.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, this.zBottomClipValue);
   }
   init() {
     this.engine = new BABYLON.Engine(this.canvas, true, { doNotHandleContextLost: true });
@@ -126,6 +127,8 @@ export default class {
 
   showWorldAxis(size) {
     var scene = this.scene;
+    var that = this;
+
     var makeTextPlane = function (text, color, size) {
       var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', 50, scene, true);
       dynamicTexture.hasAlpha = true;
@@ -135,19 +138,24 @@ export default class {
       plane.material.backFaceCulling = false;
       plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
       plane.material.diffuseTexture = dynamicTexture;
+      that.registerClipIgnore(plane);
       return plane;
     };
+
     var axisX = BABYLON.Mesh.CreateLines('axisX', [BABYLON.Vector3.Zero(), new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, 0.05 * size, 0), new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)], this.scene);
     axisX.color = new BABYLON.Color3(1, 0, 0);
+    this.registerClipIgnore(axisX);
     var xChar = makeTextPlane('X', 'red', size / 10);
     xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
     var axisY = BABYLON.Mesh.CreateLines('axisY', [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(-0.05 * size, size * 0.95, 0), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(0.05 * size, size * 0.95, 0)], this.scene);
     axisY.color = new BABYLON.Color3(0, 1, 0);
+    this.registerClipIgnore(axisY);
     var yChar = makeTextPlane('Z', 'green', size / 10);
     yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
     var axisZ = BABYLON.Mesh.CreateLines('axisZ', [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, -0.05 * size, size * 0.95), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, 0.05 * size, size * 0.95)], this.scene);
     axisZ.color = new BABYLON.Color3(0, 0, 1);
     var zChar = makeTextPlane('Y', 'blue', size / 10);
+    this.registerClipIgnore(axisZ);
     zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
   }
   getBedSize() {
@@ -301,6 +309,8 @@ export default class {
       //Render the corner axis
       this.showWorldAxis(50);
     }
+
+    this.registerClipIgnore(this.bedMesh);
   }
   buildtoolCursor() {
     if (this.toolCursor !== undefined) return;
@@ -311,6 +321,7 @@ export default class {
     this.toolCursorMesh.rotate(BABYLON.Axis.X, Math.PI, BABYLON.Space.LOCAL);
     this.toolCursorMesh.scaling = new BABYLON.Vector3(3, 3, 3);
     this.toolCursorMesh.isVisible = this.toolCursorVisible;
+    this.registerClipIgnore(this.toolCursorMesh);
   }
   setLiveTracking(enabled) {
     this.gcodeProcessor.setLiveTracking(enabled);
@@ -321,5 +332,16 @@ export default class {
   updateRenderQuality(renderQuality) {
     this.renderQuality = renderQuality;
     localStorage.setItem('renderQuality', renderQuality);
+  }
+  registerClipIgnore(mesh) {
+    let that = this;
+    mesh.onBeforeRenderObservable.add(function () {
+      that.scene.clipPlane = null;
+      that.scene.clipPlane2 = null;
+    });
+    mesh.onAfterRenderObservable.add(function () {
+      that.scene.clipPlane = new BABYLON.Plane(0, 1, 0, that.zTopClipValue);
+      that.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, that.zBottomClipValue);
+    });
   }
 }

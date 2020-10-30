@@ -42,8 +42,6 @@ export default class {
 
     this.lineLengthTolerance = 0.05;
 
-    this.finalPass = false;
-
     this.extruderColors = [
       new BABYLON.Color4(0, 1, 1, 1), //c
       new BABYLON.Color4(1, 0, 1, 1), //m
@@ -70,10 +68,16 @@ export default class {
 
     //render every nth row
     this.everyNthRow = 0;
-    this.currentNRow = -1;
+    this.currentRowIdx = -1;
     this.currentZ = 0;
 
     this.renderTravels = false;
+
+    this.forceWireMode = false;
+
+    this.enableTransparency = false;
+    this.lineVertexAlpha = true;
+    this.debug = false;
   }
 
   setExtruderColors(colors) {
@@ -99,6 +103,12 @@ export default class {
     }
 
     let maxLines = 0;
+    let renderStartIndex = this.forceWireMode ? 2 : 1;
+    let maxNRow = 2;
+
+    this.refreshTime = 5000;
+    this.everyNthRow = 1;
+
     //Render Mode Multipliers
     // 12x - 3d
     // 2x - line
@@ -108,34 +118,41 @@ export default class {
       //Low Quality
       case 1:
         {
-          maxLines = 5000000;
+          renderStartIndex = 2;
+          this.refreshTime = 30000;
+          maxLines = 100000;
+          maxNRow = 10;
         }
         break;
-
       //Medium Quality
       case 2:
         {
-          maxLines = 20000000;
+          maxLines = 5000000;
+          maxNRow = 3;
         }
         break;
-
       //High Quality
       case 3:
         {
-          maxLines = 50000000;
+          maxLines = 15000000;
+          maxNRow = 2;
         }
         break;
-
-      //Unlimited
+      //Ultra
+      case 4:
+        {
+          maxLines = 25000000;
+        }
+        break;
+      //Max
       default: {
         this.renderVersion = RenderMode.Block;
         this.everyNthRow = 1;
-        console.log(this.renderMode);
         return;
       }
     }
 
-    for (let renderModeIdx = 1; renderModeIdx < 4; renderModeIdx++) {
+    for (let renderModeIdx = renderStartIndex; renderModeIdx < 4; renderModeIdx++) {
       let vertextMultiplier;
       switch (renderModeIdx) {
         case 1:
@@ -149,26 +166,30 @@ export default class {
           break;
       }
 
-      for (let idx = 1; idx < 3; idx++) {
+      for (let idx = this.everyNthRow; idx <= maxNRow; idx++) {
+        if (this.debug) {
+          console.log('Mode: ' + renderModeIdx + '  NRow: ' + idx + '   vertexcount: ' + (numberOfLines * vertextMultiplier) / idx);
+        }
         if ((numberOfLines * vertextMultiplier) / idx < maxLines) {
           this.renderVersion = renderModeIdx;
           this.everyNthRow = idx;
-          //console.log('Render Mode:' + renderModeIdx);
-          //console.log('Render Every Nth: ' + this.everyNthRow);
-          //console.log('Number of Lines :' + numberOfLines);
-          //console.log('Estimated Num Verts: ' + (numberOfLines * vertextMultiplier) / idx);
           return;
         }
       }
     }
+
+    //we couldn't find a working case so we'll set a triage value
+    console.log('Worst Case');
+    this.renderVersion = 2;
+    this.everyNthRow = 10;
   }
 
   processGcodeFile(file, renderQuality) {
     this.currentZ = 0;
-    this.currentNRow = -1;
+    this.currentRowIdx = -1;
     this.gcodeLineIndex = [];
     this.lineMeshIndex = 0;
-    this.finalPass = false;
+    this.lastExtrudedZHeight = 0;
 
     if (renderQuality === undefined || renderQuality === null) {
       renderQuality = 4;
@@ -181,7 +202,6 @@ export default class {
 
     this.lineCount = lines.length;
 
-    console.log(renderQuality);
     this.setRenderQualitySettings(this.lineCount, renderQuality);
 
     //set initial color to extruder 0
@@ -245,11 +265,11 @@ export default class {
           //Nth row exclusion
           if (this.everyNthRow > 1 && line.extruding) {
             if (this.currentPosition.y > this.currentZ) {
-              this.currentNRow++;
+              this.currentRowIdx++;
               this.currentZ = this.currentPosition.y;
             }
 
-            if (this.currentNRow % this.everyNthRow !== 0) {
+            if ((this.currentRowIdx % this.everyNthRow !== 0) ^ (this.currentRowIdx < 2)) {
               return;
             }
           }
@@ -318,6 +338,7 @@ export default class {
     let that = this;
     let lastUpdate = Date.now();
     let meshIndex = this.lineMeshIndex;
+    let runComplete = false;
     this.gcodeLineIndex.push(new Array());
 
     if (this.renderVersion === RenderMode.Line) {
@@ -326,6 +347,9 @@ export default class {
       //Extrusion
       let lineArray = [];
       let colorArray = [];
+      if (this.debug) {
+        console.log(this.lines[0]);
+      }
       for (var lineIdx = 0; lineIdx < this.lines.length; lineIdx++) {
         let line = this.lines[lineIdx];
         this.gcodeLineIndex[meshIndex].push(line.gcodeLineNumber);
@@ -340,7 +364,7 @@ export default class {
           lines: lineArray,
           colors: colorArray,
           updatable: true,
-          useVertexColor: true,
+          useVertexAlpha: this.lineVertexAlpha,
         },
         scene
       );
@@ -354,45 +378,49 @@ export default class {
       lineMesh.freezeNormals();
       lineMesh.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.ColorKind);
 
+      const lineSolidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
+      lineMesh.material = lineSolidMat;
+
       let lastRendered = 0;
 
       let beforeRenderFunc = function () {
-        if (that.liveTracking || that.finalPass) {
-          if (that.gcodeLineNumber === 0 || lastRendered >= that.gcodeLineIndex[meshIndex].length - 1) {
+        if (that.liveTracking && !runComplete && (that.gcodeLineNumber === 0 || lastRendered >= that.gcodeLineIndex[meshIndex].length - 1)) {
+          return;
+        } else if (Date.now() - lastUpdate < that.refreshTime) {
+          return;
+        } else {
+          lastUpdate = Date.now();
+
+          var colorData = lineMesh.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+
+          if (colorData === null || colorData === undefined) {
+            console.log('Fail');
             return;
-          } else if (Date.now() - lastUpdate < that.refreshTime && !that.finalPass) {
-            return;
-          } else {
-            lastUpdate = Date.now();
+          }
 
-            var colorData = lineMesh.getVerticesData(BABYLON.VertexBuffer.ColorKind);
-
-            if (colorData === null || colorData === undefined) {
-              console.log('Fail');
-              return;
+          let renderTo = -1;
+          for (var renderToIdx = lastRendered; renderToIdx < that.gcodeLineIndex[meshIndex].length; renderToIdx++) {
+            if (that.gcodeLineIndex[meshIndex][renderToIdx] <= that.gcodeLineNumber) {
+              renderTo = renderToIdx;
             }
+          }
 
-            let renderTo = -1;
-            for (var renderToIdx = lastRendered; renderToIdx < that.gcodeLineIndex[meshIndex].length; renderToIdx++) {
-              if (that.gcodeLineIndex[meshIndex][renderToIdx] <= that.gcodeLineNumber) {
-                renderTo = renderToIdx;
-              }
-            }
+          for (var colorIdx = lastRendered; colorIdx < renderTo; colorIdx++) {
+            let index = colorIdx * 8;
+            colorData[index] = 1;
+            colorData[index + 1] = 1;
+            colorData[index + 2] = 1;
+            colorData[index + 3] = 1;
+            colorData[index + 4] = 1;
+            colorData[index + 5] = 1;
+            colorData[index + 6] = 1;
+            colorData[index + 7] = 1;
+          }
+          lastRendered = renderTo;
+          lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
 
-            for (var colorIdx = lastRendered; colorIdx < renderTo; colorIdx++) {
-              let index = colorIdx * 8;
-              colorData[index] = 1;
-              colorData[index + 1] = 1;
-              colorData[index + 2] = 1;
-              colorData[index + 3] = 1;
-              colorData[index + 4] = 1;
-              colorData[index + 5] = 1;
-              colorData[index + 6] = 1;
-              colorData[index + 7] = 1;
-            }
-            lastRendered = renderTo;
-            lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
-            if (that.finalPass) that.finalPass = false;
+          if (that.gcodeLineNumber === Number.MAX_VALUE) {
+            runComplete = true;
           }
         }
       };
@@ -448,14 +476,16 @@ export default class {
       };
 
       let beforeRenderFunc = function () {
-        if (that.liveTracking || that.finalPass) {
-          if (Date.now() - lastUpdate < that.refreshTime && !that.finalPass) {
+        if (that.liveTracking && !runComplete) {
+          if (Date.now() - lastUpdate < that.refreshTime) {
             return;
           } else {
             lastUpdate = Date.now();
             sps.setParticles();
             sps.computeSubMeshes();
-            if (that.finalPass) that.finalPass = false;
+          }
+          if (that.gcodeLineNumber === Number.MAX_VALUE) {
+            runComplete = true;
           }
         }
       };
@@ -528,9 +558,11 @@ export default class {
   }
 
   doFinalPass() {
+    this.liveTracking = true;
     this.gcodeLineNumber = Number.MAX_VALUE;
-    this.renderIndex = this.gcodeLineIndex.length;
-    this.finalPass = true;
+    setTimeout(() => {
+      this.liveTracking = false;
+    }, this.refreshTime + 1000);
   }
 
   updateMesh() {

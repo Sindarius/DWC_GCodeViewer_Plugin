@@ -27,6 +27,11 @@ export default class {
     if (this.renderQuality === undefined || this.renderQuality === null) {
       this.renderQuality = 1;
     }
+
+    this.hasCacheSupport = 'caches' in window;
+    if (this.hasCacheSupport) {
+      console.info('Cache support enabled');
+    }
   }
   getMaxHeight() {
     return this.maxHeight;
@@ -89,20 +94,26 @@ export default class {
   }
 
   setFileName(path) {
-    window.caches.open('gcode-viewer').then(function (cache) {
-      var pathData = new Blob([path], { type: 'text/plain' });
-      cache.put('gcodeFileName', new Response(pathData));
-    });
+    if (this.hasCacheSupport) {
+      window.caches.open('gcode-viewer').then(function (cache) {
+        var pathData = new Blob([path], { type: 'text/plain' });
+        cache.put('gcodeFileName', new Response(pathData));
+      });
+    }
   }
 
   getFileName() {
-    window.caches.open('gcode-viewer').then(function (cache) {
-      cache.match('gcodeData').then(function (response) {
-        response.text().then(function (text) {
-          return text;
+    if (this.hasCacheSupport) {
+      window.caches.open('gcode-viewer').then(function (cache) {
+        cache.match('gcodeData').then(function (response) {
+          response.text().then(function (text) {
+            return text;
+          });
         });
       });
-    });
+    } else {
+      return '';
+    }
   }
 
   resetCamera() {
@@ -122,17 +133,21 @@ export default class {
     this.refreshUI();
 
     let that = this;
-    window.caches.open('gcode-viewer').then(function (cache) {
-      var gcodeData = new Blob([fileContents], { type: 'text/plain' });
-      cache.put('gcodeData', new Response(gcodeData));
-    });
+    if (this.hasCacheSupport) {
+      window.caches.open('gcode-viewer').then(function (cache) {
+        var gcodeData = new Blob([fileContents], { type: 'text/plain' });
+        cache.put('gcodeData', new Response(gcodeData));
+      });
+    }
 
     this.fileData = fileContents;
     this.gcodeProcessor.setExtruderColors(this.getExtruderColors());
     this.gcodeProcessor.scene = this.scene;
 
     this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function () {
-      that.fileData = ''; //free resourcs sooner
+      if (that.hasCacheSupport) {
+        that.fileData = ''; //free resourcs sooner
+      }
     });
 
     this.gcodeProcessor.createScene(this.scene);
@@ -265,15 +280,20 @@ export default class {
   reload() {
     return new Promise((resolve) => {
       this.clearScene();
-      let that = this;
-      window.caches.open('gcode-viewer').then(function (cache) {
-        cache.match('gcodeData').then(function (response) {
-          response.text().then(function (text) {
-            that.processFile(text);
-            resolve();
+
+      if (this.hasCacheSupport) {
+        let that = this;
+        window.caches.open('gcode-viewer').then(function (cache) {
+          cache.match('gcodeData').then(function (response) {
+            response.text().then(function (text) {
+              that.processFile(text);
+              resolve();
+            });
           });
         });
-      });
+      } else {
+        this.processFile(this.fileData);
+      }
     });
   }
   getLineCount() {
@@ -309,7 +329,7 @@ export default class {
           break;
         case 'Z':
           {
-            z = position[index].position;
+            z = position[index].position * (this.gcodeProcessor.spreadLines ? this.gcodeProcessor.spreadLineAmount : 1);
           }
           break;
       }

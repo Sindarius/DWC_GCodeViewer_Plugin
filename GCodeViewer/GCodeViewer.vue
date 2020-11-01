@@ -20,6 +20,8 @@
                     <v-btn :value="6">Max</v-btn>
                   </v-btn-toggle>
                   <v-checkbox v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
+                  <v-checkbox v-model="vertexAlpha" label="Wire Vertex Alpha"></v-checkbox>
+                  <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
                 </v-card>
                 <v-card v-for="(extruder, index) in extruderColors" :key="index">
                     <h3>Tool {{ index.axes }}</h3>
@@ -32,8 +34,8 @@
                     <v-btn block @click="resetExtruderColors">Reset Extruder Colors</v-btn>
                 </v-card>
                 <v-card>
-                    <v-slider min="0.1" :max="maxHeight" v-model="sliderHeight" thumb-label thumb-size="24" label="Height Slider" step="0.1"></v-slider>
-                    <v-slider min="0.1" :max="maxHeight" v-model="sliderBottomHeight" thumb-label thumb-size="24" label="Height Slider" step="0.1"></v-slider>
+                    <v-slider min="0.1" :max="maxHeight" v-model="sliderHeight" thumb-label thumb-size="24" label="T Slider" step="0.1"></v-slider>
+                    <v-slider min="0.1" :max="maxHeight" v-model="sliderBottomHeight" thumb-label thumb-size="24" label="B Slider" step="0.1"></v-slider>
 
                     <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
                 </v-card>
@@ -92,6 +94,8 @@
       sliderBottomHeight: 0,
       liveZTracking: false,
       forceWireMode: false,
+      vertexAlpha: true,
+      spreadLines: false,
     }),
     computed: {
       ...mapState('machine/model', ['job', 'move', 'state']),
@@ -241,7 +245,7 @@
       },
       renderMode: function (newValue) {
         viewer.gcodeProcessor.renderVersion = newValue;
-        viewer.reload();
+        this.reloadviewer();
       },
       nthRow: function (newValue) {
         viewer.gcodeProcessor.everyNthRow = newValue;
@@ -259,6 +263,14 @@
       sliderBottomHeight: function (newValue) {
         if (this.sliderHeight < newValue) this.sliderHeight = newValue + 1;
         viewer.setZClipPlane(this.sliderHeight, newValue);
+      },
+      vertexAlpha: function (newValue) {
+        viewer.gcodeProcessor.lineVertexAlpha = newValue;
+        this.reloadviewer();
+      },
+      spreadLines: function (newValue) {
+        viewer.gcodeProcessor.spreadLines = newValue;
+        this.reloadviewer();
       },
     },
   };

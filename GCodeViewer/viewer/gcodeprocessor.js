@@ -77,6 +77,8 @@ export default class {
 
     this.enableTransparency = false;
     this.lineVertexAlpha = true;
+    this.spreadLines = false;
+    this.spreadLineAmount = 10;
     this.debug = false;
   }
 
@@ -199,6 +201,8 @@ export default class {
     this.gcodeLineIndex = [];
     this.lineMeshIndex = 0;
     this.lastExtrudedZHeight = 0;
+    this.previousLayerHeight = 0;
+    this.currentLayerHeight = 0;
 
     if (renderQuality === undefined || renderQuality === null) {
       renderQuality = 4;
@@ -269,6 +273,9 @@ export default class {
                 break;
               case 'Z':
                 this.currentPosition.y = this.absolute ? Number(token.substring(1)) : this.currentPosition.y + Number(token.substring(1));
+                if (this.spreadLines) {
+                  this.currentPosition.y *= this.spreadLineAmount;
+                }
                 this.maxHeight = this.currentPosition.y;
                 break;
               case 'E':
@@ -380,6 +387,10 @@ export default class {
         let line = this.lines[lineIdx];
         this.gcodeLineIndex[meshIndex].push(line.gcodeLineNumber);
         let data = line.getPoints(scene);
+        if (this.lineVertexAlpha) {
+          data.colors[0].a = 0.5;
+          data.colors[1].a = 0.5;
+        }
         lineArray.push(data.points);
         colorArray.push(data.colors);
       }
@@ -455,6 +466,10 @@ export default class {
       scene.registerBeforeRender(beforeRenderFunc);
     } else if (this.renderVersion === RenderMode.Block) {
       var layerHeight = Math.floor((this.currentLayerHeight - this.previousLayerHeight) * 100) / 100;
+
+      if (this.spreadLines) {
+        layerHeight /= this.spreadLineAmount;
+      }
 
       this.renderMode = 'Mesh Rendering';
       var box = BABYLON.MeshBuilder.CreateBox('box', { width: 1, height: layerHeight, depth: layerHeight * 1.2 }, scene);

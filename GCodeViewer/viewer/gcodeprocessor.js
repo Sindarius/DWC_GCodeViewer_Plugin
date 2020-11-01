@@ -115,31 +115,40 @@ export default class {
     // 1x - point
 
     switch (renderQuality) {
-      //Low Quality
+      //SBC Quality - Pi 3B+
       case 1:
         {
           renderStartIndex = 2;
           this.refreshTime = 30000;
-          maxLines = 100000;
+          maxLines = 25000;
+          maxNRow = 50;
+        }
+        break;
+      //Low Quality
+      case 2:
+        {
+          renderStartIndex = 2;
+          this.refreshTime = 30000;
+          maxLines = 500000;
           maxNRow = 10;
         }
         break;
       //Medium Quality
-      case 2:
+      case 3:
         {
-          maxLines = 5000000;
+          maxLines = 1000000;
           maxNRow = 3;
         }
         break;
       //High Quality
-      case 3:
+      case 4:
         {
           maxLines = 15000000;
           maxNRow = 2;
         }
         break;
       //Ultra
-      case 4:
+      case 5:
         {
           maxLines = 25000000;
         }
@@ -181,10 +190,10 @@ export default class {
     //we couldn't find a working case so we'll set a triage value
     console.log('Worst Case');
     this.renderVersion = 2;
-    this.everyNthRow = 10;
+    this.everyNthRow = 20;
   }
 
-  processGcodeFile(file, renderQuality) {
+  processGcodeFile(file, renderQuality, clearCache) {
     this.currentZ = 0;
     this.currentRowIdx = -1;
     this.gcodeLineIndex = [];
@@ -200,13 +209,18 @@ export default class {
     }
     var lines = file.split(/\r\n|\n/);
 
-    this.lineCount = lines.length;
+    //Get an opportunity to free memory before we strt generating 3d model
+    if (typeof clearCache === 'function') {
+      clearCache();
+    }
 
+    this.lineCount = lines.length;
     this.setRenderQualitySettings(this.lineCount, renderQuality);
 
     //set initial color to extruder 0
     this.currentColor = this.extruderColors[0].clone();
 
+    /*
     for (var lineNo = 0; lineNo < lines.length; lineNo++) {
       var line = lines[lineNo];
       line.trim();
@@ -214,6 +228,18 @@ export default class {
         this.processLine(line, lineNo);
       }
     }
+*/
+    lines.reverse();
+    let lineNo = 0;
+    while (lines.length) {
+      lineNo++;
+      var line = lines.pop();
+      line.trim();
+      if (!line.startsWith(';')) {
+        this.processLine(line, lineNo);
+      }
+    }
+
     file = {}; //Clear1 out the file.
   }
 

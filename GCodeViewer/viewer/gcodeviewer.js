@@ -88,6 +88,23 @@ export default class {
     setTimeout(function () {}, 0);
   }
 
+  setFileName(path) {
+    window.caches.open('gcode-viewer').then(function (cache) {
+      var pathData = new Blob([path], { type: 'text/plain' });
+      cache.put('gcodeFileName', new Response(pathData));
+    });
+  }
+
+  getFileName() {
+    window.caches.open('gcode-viewer').then(function (cache) {
+      cache.match('gcodeData').then(function (response) {
+        response.text().then(function (text) {
+          return text;
+        });
+      });
+    });
+  }
+
   resetCamera() {
     var bedSize = this.getBedSize();
     (this.scene.activeCamera.alpha = Math.PI / 2), (this.scene.activeCamera.beta = 2.356194);
@@ -103,10 +120,21 @@ export default class {
   processFile(fileContents) {
     this.clearScene();
     this.refreshUI();
+
+    let that = this;
+    window.caches.open('gcode-viewer').then(function (cache) {
+      var gcodeData = new Blob([fileContents], { type: 'text/plain' });
+      cache.put('gcodeData', new Response(gcodeData));
+    });
+
     this.fileData = fileContents;
     this.gcodeProcessor.setExtruderColors(this.getExtruderColors());
     this.gcodeProcessor.scene = this.scene;
-    this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality);
+
+    this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function () {
+      that.fileData = ''; //free resourcs sooner
+    });
+
     this.gcodeProcessor.createScene(this.scene);
     this.maxHeight = this.gcodeProcessor.getMaxHeight();
     this.toggleTravels(this.travelVisible);
@@ -237,8 +265,15 @@ export default class {
   reload() {
     return new Promise((resolve) => {
       this.clearScene();
-      this.processFile(this.fileData);
-      resolve();
+      let that = this;
+      window.caches.open('gcode-viewer').then(function (cache) {
+        cache.match('gcodeData').then(function (response) {
+          response.text().then(function (text) {
+            that.processFile(text);
+            resolve();
+          });
+        });
+      });
     });
   }
   getLineCount() {

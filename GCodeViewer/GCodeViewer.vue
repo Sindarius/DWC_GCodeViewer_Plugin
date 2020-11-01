@@ -12,11 +12,12 @@
                 <v-card>
                   <h3>Render Quality</h3>
                   <v-btn-toggle exclusive mandatory v-model="renderQuality" class="btn-toggle">
-                    <v-btn :value="1">Low</v-btn>
-                    <v-btn :value="2">Medium</v-btn>
-                    <v-btn :value="3">High</v-btn>
-                    <v-btn :value="4">Ultra</v-btn>
-                    <v-btn :value="5">Max</v-btn>
+                    <v-btn :value="1">SBC</v-btn>
+                    <v-btn :value="2">Low</v-btn>
+                    <v-btn :value="3">Medium</v-btn>
+                    <v-btn :value="4">High</v-btn>
+                    <v-btn :value="5">Ultra</v-btn>
+                    <v-btn :value="6">Max</v-btn>
                   </v-btn-toggle>
                   <v-checkbox v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
                 </v-card>
@@ -199,6 +200,9 @@
           this.loading = false;
           viewer.setCursorVisiblity(this.showCursor);
           viewer.toggleTravels(this.showTravelLines);
+          this.maxHeight = viewer.getMaxHeight();
+          this.sliderHeight = this.maxHeight;
+          this.sliderBottomHeight = 0;
         });
       },
       clearScene() {

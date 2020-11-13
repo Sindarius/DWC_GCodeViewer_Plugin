@@ -373,6 +373,7 @@ export default class {
         });
       } else {
         this.processFile(this.fileData);
+        resolve();
       }
     });
   }
@@ -467,7 +468,9 @@ export default class {
   }
   updateRenderQuality(renderQuality) {
     this.renderQuality = renderQuality;
-    localStorage.setItem('renderQuality', renderQuality);
+    if (localStorage) {
+      localStorage.setItem('renderQuality', renderQuality);
+    }
   }
   registerClipIgnore(mesh) {
     let that = this;

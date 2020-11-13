@@ -4,7 +4,7 @@
          <v-card>
             <v-btn @click="reset" block>Reset View</v-btn>
             <v-btn @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
-            <v-btn @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block>Load Current Job</v-btn>
+            <v-btn @click="loadRunningJob" :disabled="!isJobRunning || loading" block>Load Current Job</v-btn>
             <v-btn @click="clearScene" v-show="debugVisible" :disabled="loading" block>Clear Scene</v-btn>
             <v-checkbox v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-checkbox>
             <v-checkbox v-model="showCursor" label="Show Cursor"></v-checkbox>
@@ -53,20 +53,6 @@
             <h3>Background</h3>
             <gcodeviewer-color-picker :editcolor="backgroundColor" @updatecolor="(value) => updateBackground(value)"></gcodeviewer-color-picker>
          </v-card>
-         <v-card v-show="debugVisible">
-            <h3>Render Mode (Disabled)</h3>
-            <v-btn-toggle exclusive v-model="renderMode">
-               <v-btn :value="1">Line</v-btn>
-               <v-btn :value="2">3D</v-btn>
-               <v-btn :value="3">Point</v-btn>
-            </v-btn-toggle>
-            <h3>Render n-th row (Disabled)</h3>
-            <v-btn-toggle exclusive v-model="nthRow">
-               <v-btn :value="1">1</v-btn>
-               <v-btn :value="2">2</v-btn>
-               <v-btn :value="3">3</v-btn>
-            </v-btn-toggle>
-         </v-card>
       </div>
       <div class="viewer-box">
          <canvas ref="viewerCanvas" class="babylon-canvas" />
@@ -113,7 +99,6 @@
         showCursor: false,
         showTravelLines: false,
         selectedFile: '',
-        renderMode: 1,
         nthRow: 1,
         renderQuality: 0,
         debugVisible: false,
@@ -134,7 +119,11 @@
         ...mapState('machine/model', ['job', 'move', 'state']),
         isJobRunning: (state) => state.state.status === StatusType.simulating || state.state.status === StatusType.processing,
         visualizingCurrentJob: function (state) {
-           return state.job.file.fileName === this.selectedFile;
+           try {
+              return state.job.file.fileName === this.selectedFile;
+           } catch {
+              return false;
+           }
         },
         filePosition: (state) => state.job.filePosition,
         fileSize: (state) => state.job.file.size,
@@ -166,7 +155,6 @@
         this.extruderColors = viewer.getExtruderColors();
         this.backgroundColor = viewer.getBackgroundColor();
         this.progressColor = viewer.getProgressColor();
-
         this.viewModelEvent = async (path) => {
            this.selectedFile = path;
            this.loading = true;
@@ -305,14 +293,11 @@
            let progressPercent = newValue / this.fileSize;
            viewer.updatePrintProgress(progressPercent);
         },
-        renderMode: function (newValue) {
-           viewer.gcodeProcessor.renderVersion = newValue;
-           this.reloadviewer();
-        },
         nthRow: function (newValue) {
            viewer.gcodeProcessor.everyNthRow = newValue;
         },
         renderQuality: function (newValue) {
+           console.log(newValue);
            if (viewer.renderQuality !== newValue) {
               viewer.updateRenderQuality(newValue);
               this.reloadviewer();

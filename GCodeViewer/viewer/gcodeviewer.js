@@ -20,7 +20,7 @@ export default class {
     this.toolCursorVisible = true;
     this.travelVisible = false;
     this.isDelta = false;
-    this.debug = true;
+    this.debug = false;
     this.zTopClipValue;
     this.zBottomClipValue;
     this.renderQuality = localStorage.getItem('renderQuality');

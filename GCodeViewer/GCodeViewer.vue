@@ -67,13 +67,19 @@
       <v-col cols="10" block>
          <canvas ref="viewerCanvas" class="babylon-canvas" />
       </v-col>
-      <v-dialog v-model="objectDialogData.showDialog" max-width="200">
+      <v-dialog v-model="objectDialogData.showDialog" max-width="300">
          <v-card>
-            <v-card-title>Cancel Object</v-card-title>
-            <v-card-text>Cancel {{ objectDialogData.info.name }}</v-card-text>
+            <v-card-title class="headline">{{ objectDialogData.info.canelled ? 'Cancel' : 'Resume' }} Object</v-card-title>
+            <v-card-text> {{ objectDialogData.info.name }}</v-card-text>
             <v-card-actions>
-               <v-btn @click="objectDialogCancelObject" color="primary">Ok</v-btn>
-               <v-btn @click="objectDialogData.showDialog = false" color="error">Cancel</v-btn>
+               <v-row no-gutters>
+                  <v-col cols="6">
+                     <v-btn block @click="objectDialogCancelObject" color="primary">Ok</v-btn>
+                  </v-col>
+                  <v-col cols="6">
+                     <v-btn block @click="objectDialogData.showDialog = false" color="error">Cancel</v-btn>
+                  </v-col>
+               </v-row>
             </v-card-actions>
          </v-card>
       </v-dialog>
@@ -98,7 +104,7 @@
         testValue: 'Test',
         loading: false,
         testData: '',
-        showCursor: true,
+        showCursor: false,
         showTravelLines: false,
         selectedFile: '',
         renderMode: 1,
@@ -243,20 +249,24 @@
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
               this.sliderBottomHeight = 0;
+              try {
+                 viewer.loadObjectBoundaries(this.job.build.objects);
+              } catch {
+                 console.warn('No objects');
+              }
            });
         },
         clearScene() {
            viewer.clearScene();
         },
         objectSelectionCallback(selectedObject) {
-           if (!selectedObject.cancelled) {
-              this.objectDialogData.showDialog = true;
-              this.objectDialogData.info = selectedObject;
-           }
+           this.objectDialogData.showDialog = true;
+           this.objectDialogData.info = selectedObject;
         },
         async objectDialogCancelObject() {
            //M486 Pindex
-           await this.sendCode(`M486 P${this.objectDialogData.info.index}`);
+           let action = this.objectDialogData.info.cancelled ? 'U' : 'P';
+           await this.sendCode(`M486 ${action}${this.objectDialogData.info.index}`);
            this.objectDialogData.showDialog = false;
            this.objectDialogData.info = {};
         },

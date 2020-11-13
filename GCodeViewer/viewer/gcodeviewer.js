@@ -24,6 +24,7 @@ export default class {
     this.zTopClipValue;
     this.zBottomClipValue;
     this.renderQuality = localStorage.getItem('renderQuality');
+    this.alphaLevel = 0.5;
 
     if (this.renderQuality === undefined || this.renderQuality === null) {
       this.renderQuality = 1;
@@ -97,18 +98,27 @@ export default class {
 
     this.cancelMeshMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
     this.cancelMeshMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.1);
-    this.cancelMeshMaterial.alpha = 0.25;
+    this.cancelMeshMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+    this.cancelMeshMaterial.alpha = this.alphaLevel;
     this.cancelMeshMaterial.needAlphaTesting = () => true;
+    this.cancelMeshMaterial.separateCullingPass = true;
+    this.cancelMeshMaterial.backFaceCulling = true;
 
     this.cancelMeshHighlightMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
     this.cancelMeshHighlightMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
-    this.cancelMeshHighlightMaterial.alpha = 0.25;
+    this.cancelMeshHighlightMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+    this.cancelMeshHighlightMaterial.alpha = this.alphaLevel;
     this.cancelMeshHighlightMaterial.needAlphaTesting = () => true;
+    this.cancelMeshHighlightMaterial.separateCullingPass = true;
+    this.cancelMeshHighlightMaterial.backFaceCulling = true;
 
     this.cancelMeshCancelledMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
     this.cancelMeshCancelledMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
-    this.cancelMeshCancelledMaterial.alpha = 0.25;
+    this.cancelMeshCancelledMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+    this.cancelMeshCancelledMaterial.alpha = this.alphaLevel;
     this.cancelMeshCancelledMaterial.needAlphaTesting = () => true;
+    this.cancelMeshCancelledMaterial.separateCullingPass = true;
+    this.cancelMeshCancelledMaterial.backFaceCulling = true;
 
     let material = new BABYLON.Texture.CreateFromBase64String(this.checkerBoard, 'checkerboard', this.scene);
     this.cancelMeshCancelledMaterial.diffuseTexture = material;
@@ -478,18 +488,18 @@ export default class {
           pattern: BABYLON.Mesh.CAP_ALL,
           alignVertical: BABYLON.Mesh.TOP,
           alignHorizontal: BABYLON.Mesh.LEFT,
-          tileHeight: 64,
-          tileWidth: 64,
+          tileHeight: 128,
+          tileWidth: 128,
           width: Math.abs(cancelObject.x[1] - cancelObject.x[0]),
           height: this.gcodeProcessor.maxHeight / 1.5 + 5,
           depth: Math.abs(cancelObject.y[1] - cancelObject.y[0]),
-          sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+          sideOrientation: BABYLON.Mesh.FRONTSIDE,
         },
         this.scene
       );
 
       cancelMesh.position.x = (cancelObject.x[1] + cancelObject.x[0]) / 2;
-      cancelMesh.position.y = this.gcodeProcessor.maxHeight / 4 + 2.5;
+      cancelMesh.position.y = this.gcodeProcessor.maxHeight / 4 + 9.75;
       cancelMesh.position.z = (cancelObject.y[1] + cancelObject.y[0]) / 2;
       cancelObject.index = cancelObjectIdx;
       cancelMesh.metadata = cancelObject;

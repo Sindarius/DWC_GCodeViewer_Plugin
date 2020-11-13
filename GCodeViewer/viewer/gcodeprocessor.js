@@ -455,7 +455,6 @@ export default class {
           }
           lastRendered = renderTo;
           lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
-
           if (that.gcodeLineNumber === Number.MAX_VALUE) {
             runComplete = true;
           }
@@ -500,6 +499,7 @@ export default class {
       transparentMat.alpha = this.materialTransparency;
       transparentMat.needAlphaTesting = () => true;
       transparentMat.separateCullingPass = true;
+      transparentMat.backFaceCulling = true;
 
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();

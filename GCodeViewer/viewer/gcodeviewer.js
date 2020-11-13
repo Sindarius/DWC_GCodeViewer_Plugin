@@ -451,7 +451,7 @@ export default class {
       that.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, that.zBottomClipValue);
     });
   }
-  startCancelObjects(cancelObjects) {
+  loadObjectBoundaries(boundaryObjects) {
     if (this.cancelObjectMeshes.length > 0) {
       for (let i = 0; i < this.cancelObjectMeshes.length; i++) {
         this.cancelObjectMeshes[i].dispose();
@@ -459,12 +459,12 @@ export default class {
       this.cancelObjectMeshes = new Array();
     }
 
-    if (!cancelObjects) {
+    if (!boundaryObjects) {
       return;
     }
 
-    for (let cancelObjectIdx = 0; cancelObjectIdx < cancelObjects.length; cancelObjectIdx++) {
-      let cancelObject = cancelObjects[cancelObjectIdx];
+    for (let cancelObjectIdx = 0; cancelObjectIdx < boundaryObjects.length; cancelObjectIdx++) {
+      let cancelObject = boundaryObjects[cancelObjectIdx];
       let cancelMesh = new BABYLON.BoxBuilder.CreateBox(
         'CANCELMESH:' + cancelObject.name,
         {
@@ -476,7 +476,7 @@ export default class {
         this.scene
       );
       cancelMesh.position.x = (cancelObject.x[1] + cancelObject.x[0]) / 2;
-      cancelMesh.position.y = 90;
+      cancelMesh.position.y = this.gcodeProcessor.maxHeight + 5;
       cancelMesh.position.z = (cancelObject.y[1] + cancelObject.y[0]) / 2;
       cancelObject.index = cancelObjectIdx;
       cancelMesh.metadata = cancelObject;

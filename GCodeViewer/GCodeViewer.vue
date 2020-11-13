@@ -67,7 +67,16 @@
       <v-col cols="10" block>
          <canvas ref="viewerCanvas" class="babylon-canvas" />
       </v-col>
-      <v-dialog></v-dialog>
+      <v-dialog v-model="objectDialogData.showDialog" max-width="200">
+         <v-card>
+            <v-card-title>Cancel Object</v-card-title>
+            <v-card-text>Cancel {{ objectDialogData.info.name }}</v-card-text>
+            <v-card-actions>
+               <v-btn @click="objectDialogCancelObject" color="primary">Ok</v-btn>
+               <v-btn @click="objectDialogData.showDialog = false" color="error">Cancel</v-btn>
+            </v-card-actions>
+         </v-card>
+      </v-dialog>
    </v-row>
 </template>
 
@@ -104,6 +113,10 @@
         vertexAlpha: true,
         spreadLines: false,
         showObjectSelection: false,
+        objectDialogData: {
+           showDialog: false,
+           info: {},
+        },
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -236,9 +249,16 @@
            viewer.clearScene();
         },
         objectSelectionCallback(selectedObject) {
-           console.log(selectedObject);
+           if (!selectedObject.cancelled) {
+              this.objectDialogData.showDialog = true;
+              this.objectDialogData.info = selectedObject;
+           }
+        },
+        async objectDialogCancelObject() {
            //M486 Pindex
-           this.sendCode(`M486 P${selectedObject.index}`);
+           await this.sendCode(`M486 P${this.objectDialogData.info.index}`);
+           this.objectDialogData.showDialog = false;
+           this.objectDialogData.info = {};
         },
      },
      watch: {
@@ -303,7 +323,7 @@
         'job.build.objects': {
            deep: true,
            handler(newValue) {
-              viewer.startCancelObjects(newValue);
+              viewer.loadObjectBoundaries(newValue);
            },
         },
         showObjectSelection: function (newValue) {

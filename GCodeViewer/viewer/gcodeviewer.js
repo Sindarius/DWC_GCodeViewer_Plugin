@@ -501,6 +501,7 @@ export default class {
       cancelMesh.position.x = (cancelObject.x[1] + cancelObject.x[0]) / 2;
       cancelMesh.position.y = this.gcodeProcessor.maxHeight / 4 + 9.75;
       cancelMesh.position.z = (cancelObject.y[1] + cancelObject.y[0]) / 2;
+      cancelMesh.alphaIndex = 0;
       cancelObject.index = cancelObjectIdx;
       cancelMesh.metadata = cancelObject;
       cancelMesh.enablePointerMoveEvents = true;

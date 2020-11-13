@@ -82,6 +82,8 @@ export default class {
     this.spreadLines = false;
     this.spreadLineAmount = 10;
     this.debug = false;
+
+    this.specularColor = new BABYLON.Color4(0.1, 0.1, 0.1, 0.1);
   }
 
   setExtruderColors(colors) {
@@ -423,6 +425,7 @@ export default class {
       lineMesh.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.ColorKind);
 
       const lineSolidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
+      lineSolidMat.specularColor = this.specularColor;
       lineMesh.material = lineSolidMat;
 
       let lastRendered = 0;
@@ -502,7 +505,9 @@ export default class {
 
       //Build out solid and transparent material.
       const solidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
+      solidMat.specularColor = this.specularColor;
       const transparentMat = new BABYLON.StandardMaterial('transparentMaterial', scene);
+      transparentMat.specularColor = this.specularColor;
       transparentMat.alpha = this.materialTransparency;
       transparentMat.needAlphaTesting = () => true;
       transparentMat.separateCullingPass = true;

@@ -297,7 +297,6 @@
            viewer.gcodeProcessor.everyNthRow = newValue;
         },
         renderQuality: function (newValue) {
-           console.log(newValue);
            if (viewer.renderQuality !== newValue) {
               viewer.updateRenderQuality(newValue);
               this.reloadviewer();
@@ -331,6 +330,11 @@
               viewer.showObjectSelection(newValue);
            } else {
               this.showObjectSelection = false;
+           }
+        },
+        isJobRunning: function (newValue) {
+           if (!newValue) {
+              viewer.updatePrintProgress(0);
            }
         },
      },

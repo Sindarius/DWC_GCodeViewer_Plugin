@@ -499,6 +499,7 @@ export default class {
       const transparentMat = new BABYLON.StandardMaterial('transparentMaterial', scene);
       transparentMat.alpha = this.materialTransparency;
       transparentMat.needAlphaTesting = () => true;
+      transparentMat.separateCullingPass = true;
 
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();

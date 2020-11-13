@@ -1,6 +1,6 @@
 <template>
-   <v-row justify="center" class="mt-3" dense v-resize="resize">
-      <v-col cols="2" class="control-panel" :style="{ 'max-height': viewerHeight }">
+   <div class="primary-container" v-resize="resize">
+      <div class="controls pa-1 ma-0">
          <v-card>
             <v-btn @click="reset" block>Reset View</v-btn>
             <v-btn @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
@@ -63,10 +63,11 @@
                <v-btn :value="3">3</v-btn>
             </v-btn-toggle>
          </v-card>
-      </v-col>
-      <v-col cols="10" block>
+      </div>
+      <div class="viewer-box">
          <canvas ref="viewerCanvas" class="babylon-canvas" />
-      </v-col>
+      </div>
+
       <v-dialog v-model="objectDialogData.showDialog" max-width="300">
          <v-card>
             <v-card-title class="headline">{{ objectDialogData.info.cancelled ? 'Resume' : 'Cancel' }} Object</v-card-title>
@@ -83,7 +84,7 @@
             </v-card-actions>
          </v-card>
       </v-dialog>
-   </v-row>
+   </div>
 </template>
 
 <script>
@@ -181,7 +182,6 @@
         this.$root.$on('view-3d-model', this.viewModelEvent);
 
         this.$nextTick(() => {
-           this.updateControlHeight();
            viewer.saveExtruderColors(this.extruderColors);
         });
      },
@@ -201,19 +201,14 @@
            this.backgroundColor = value;
            viewer.setBackgroundColor(this.backgroundColor);
         },
-        updateControlHeight() {
-           this.viewerHeight = this.$refs.viewerCanvas.clientHeight + 'px';
-        },
         resize() {
            if (Object.keys(viewer).length !== 0) {
               viewer.resize();
-              this.updateControlHeight();
            }
         },
         reset() {
            if (Object.keys(viewer).length !== 0) {
               viewer.resetCamera();
-              this.updateControlHeight();
            }
         },
         async loadRunningJob() {
@@ -337,6 +332,7 @@
         },
         showObjectSelection: function (newValue) {
            if (this.canCancelObject) {
+              viewer.loadObjectBoundaries(this.job.build.objects);
               viewer.showObjectSelection(newValue);
            } else {
               this.showObjectSelection = false;
@@ -352,11 +348,36 @@
   }
 
   .babylon-canvas {
+     position: relative;
      width: 100%;
      min-height: 300px;
+     height: 100%;
   }
 
   .btn-toggle {
      flex-direction: column;
+  }
+
+  .controls {
+     position: absolute;
+     overflow-y: auto;
+     overflow-x: hidden;
+     top: 0;
+     left: 0;
+     width: 20%;
+     height: 100%;
+  }
+  .viewer-box {
+     position: absolute;
+     top: 0;
+     right: 0;
+     width: 80%;
+     height: 100%;
+  }
+
+  .primary-container {
+     position: relative;
+     width: 100%;
+     height: 70vh;
   }
 </style>

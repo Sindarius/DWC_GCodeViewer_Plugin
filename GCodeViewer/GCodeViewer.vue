@@ -46,6 +46,10 @@
             <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
          </v-card>
          <v-card>
+            <h3>Progress Color</h3>
+            <gcodeviewer-color-picker :editcolor="progressColor" @updatecolor="(value) => updateProgressColor(value)"></gcodeviewer-color-picker>
+         </v-card>
+         <v-card>
             <h3>Background</h3>
             <gcodeviewer-color-picker :editcolor="backgroundColor" @updatecolor="(value) => updateBackground(value)"></gcodeviewer-color-picker>
          </v-card>
@@ -101,6 +105,7 @@
      data: () => ({
         extruderColors: ['#00FFFFFF', '#FF00FFFF', '#FFFF00FF', '#000000FF', '#FFFFFFFF'],
         backgroundColor: '#000000FF',
+        progressColor: '#FFFFFFFF',
         viewerHeight: '400px',
         testValue: 'Test',
         loading: false,
@@ -160,6 +165,7 @@
         this.renderQuality = viewer.renderQuality;
         this.extruderColors = viewer.getExtruderColors();
         this.backgroundColor = viewer.getBackgroundColor();
+        this.progressColor = viewer.getProgressColor();
 
         this.viewModelEvent = async (path) => {
            this.selectedFile = path;
@@ -200,6 +206,10 @@
         updateBackground(value) {
            this.backgroundColor = value;
            viewer.setBackgroundColor(this.backgroundColor);
+        },
+        updateProgressColor(value) {
+           this.progressColor = value;
+           viewer.setProgressColor(value);
         },
         resize() {
            if (Object.keys(viewer).length !== 0) {

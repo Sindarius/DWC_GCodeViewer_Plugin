@@ -14,7 +14,7 @@ export const RenderMode = {
 export default class {
   constructor() {
     this.currentPosition = new BABYLON.Vector3(0, 0, 0);
-    this.currentColor = new BABYLON.Color4(1, 1, 1, 1);
+    this.currentColor = new BABYLON.Color4(0.25, 0.25, 0.25, 1);
     this.renderVersion = RenderMode.Line;
     this.absolute = true; //Track if we are in relative or absolute mode.
 
@@ -49,6 +49,8 @@ export default class {
       new BABYLON.Color4(0, 0, 0, 1), //k
       new BABYLON.Color4(1, 1, 1, 1), //w
     ];
+
+    this.progressColor = new BABYLON.Color4(0, 1, 0, 1);
 
     //scene data
     this.lineMeshIndex = 0;
@@ -93,6 +95,10 @@ export default class {
       var extruderColor = BABYLON.Color4.FromHexString(color);
       this.extruderColors.push(extruderColor);
     }
+  }
+
+  setProgressColor(color) {
+    this.progressColor = BABYLON.Color4.FromHexString(color);
   }
 
   getMaxHeight() {
@@ -410,7 +416,7 @@ export default class {
       colorArray = null;
 
       lineMesh.isVisible = true;
-      lineMesh.alphaIndex = 10; //Testing
+      lineMesh.alphaIndex = this.lineMeshIndex; //Testing
       lineMesh.doNotSyncBoundingInfo = true;
       lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       lineMesh.freezeNormals();
@@ -445,14 +451,14 @@ export default class {
 
           for (var colorIdx = lastRendered; colorIdx < renderTo; colorIdx++) {
             let index = colorIdx * 8;
-            colorData[index] = 1;
-            colorData[index + 1] = 1;
-            colorData[index + 2] = 1;
-            colorData[index + 3] = 1;
-            colorData[index + 4] = 1;
-            colorData[index + 5] = 1;
-            colorData[index + 6] = 1;
-            colorData[index + 7] = 1;
+            colorData[index] = that.progressColor.r;
+            colorData[index + 1] = that.progressColor.g;
+            colorData[index + 2] = that.progressColor.b;
+            colorData[index + 3] = that.progressColor.a;
+            colorData[index + 4] = that.progressColor.r;
+            colorData[index + 5] = that.progressColor.g;
+            colorData[index + 6] = that.progressColor.b;
+            colorData[index + 7] = that.progressColor.a;
           }
           lastRendered = renderTo;
           lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
@@ -483,7 +489,7 @@ export default class {
         that.gcodeLineIndex[meshIndex].push(particle.props.gcodeLineNumber);
       };
 
-      let sps = new BABYLON.SolidParticleSystem('gcodemodel' + this.meshLineIndex, scene, {
+      let sps = new BABYLON.SolidParticleSystem('gcodemodel' + meshIndex, scene, {
         updatable: true,
         enableMultiMaterial: true,
       });
@@ -505,14 +511,14 @@ export default class {
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();
       sps.computeSubMeshes();
-      sps.mesh.alphaIndex = 10;
+      sps.mesh.alphaIndex = meshIndex;
       sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       sps.mesh.freezeNormals();
       sps.mesh.doNotSyncBoundingInfo = true;
 
       sps.updateParticle = function(particle) {
         if (that.gcodeLineIndex[meshIndex][particle.idx] < that.gcodeLineNumber) {
-          particle.color = new BABYLON.Color4(1, 1, 1, 1);
+          particle.color = that.progressColor;
           particle.materialIndex = 0;
         } else {
           particle.color = new BABYLON.Color4(particle.color.r, particle.color.g, particle.color.b, 0.5);
@@ -540,7 +546,7 @@ export default class {
       this.scene.clearCachedVertexData();
     } else if (this.renderVersion === RenderMode.Point) {
       //point cloud
-      this.sps = new BABYLON.PointsCloudSystem('pcs' + this.meshLineIndex, 1, scene);
+      this.sps = new BABYLON.PointsCloudSystem('pcs' + meshIndex, 1, scene);
 
       let l = this.lines;
 

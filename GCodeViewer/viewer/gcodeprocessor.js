@@ -410,6 +410,7 @@ export default class {
       colorArray = null;
 
       lineMesh.isVisible = true;
+      lineMesh.alphaIndex = 10; //Testing
       lineMesh.doNotSyncBoundingInfo = true;
       lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       lineMesh.freezeNormals();
@@ -504,6 +505,7 @@ export default class {
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();
       sps.computeSubMeshes();
+      sps.mesh.alphaIndex = 10;
       sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       sps.mesh.freezeNormals();
       sps.mesh.doNotSyncBoundingInfo = true;

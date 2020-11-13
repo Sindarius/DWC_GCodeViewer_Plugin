@@ -24,9 +24,18 @@ export default class {
     this.zTopClipValue;
     this.zBottomClipValue;
     this.renderQuality = localStorage.getItem('renderQuality');
+
     if (this.renderQuality === undefined || this.renderQuality === null) {
       this.renderQuality = 1;
     }
+
+    this.cancelObjectMeshes = new Array();
+    this.cancelMeshMaterial;
+    this.cancelMeshHighlightMaterial;
+    this.cancelMeshCancelledMaterial;
+    this.cancelHitTimer = 0;
+    this.showCancelObjects = false;
+    this.objectCallback;
 
     this.hasCacheSupport = 'caches' in window;
     if (this.hasCacheSupport) {
@@ -74,7 +83,7 @@ export default class {
     light2.diffuse = new BABYLON.Color3(1, 1, 1);
     light2.specular = new BABYLON.Color3(1, 1, 1);
     var that = this;
-    this.engine.runRenderLoop(function () {
+    this.engine.runRenderLoop(function() {
       that.scene.render();
 
       //Update light 2 position
@@ -83,6 +92,49 @@ export default class {
 
     this.buildBed();
     this.resetCamera();
+
+    this.cancelMeshMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
+    this.cancelMeshMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.1);
+    this.cancelMeshMaterial.alpha = 0.5;
+    this.cancelMeshMaterial.needAlphaTesting = () => true;
+
+    this.cancelMeshHighlightMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
+    this.cancelMeshHighlightMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    this.cancelMeshHighlightMaterial.alpha = 0.5;
+    this.cancelMeshHighlightMaterial.needAlphaTesting = () => true;
+
+    this.cancelMeshCancelledMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
+    this.cancelMeshCancelledMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    this.cancelMeshCancelledMaterial.alpha = 0.5;
+    this.cancelMeshCancelledMaterial.needAlphaTesting = () => true;
+
+    this.scene.onPointerObservable.add((pointerInfo) => {
+      let pickInfo = pointerInfo.pickInfo;
+      switch (pointerInfo.type) {
+        case BABYLON.PointerEventTypes.POINTERDOWN:
+          {
+            this.cancelHitTimer = Date.now();
+          }
+          break;
+        case BABYLON.PointerEventTypes.POINTERUP:
+          {
+            if (Date.now() - this.cancelHitTimer > 1000) {
+              return;
+            }
+
+            if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes('CANCELMESH') && this.objectCallback) {
+              this.objectCallback(pickInfo.pickedMesh.metadata);
+            }
+          }
+          break;
+        case BABYLON.PointerEventTypes.POINTERMOVE: {
+          this.cancelObjectMeshes.forEach((mesh) => this.setObjectTexture(mesh));
+          if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes('CANCELMESH')) {
+            pickInfo.pickedMesh.material = this.cancelMeshHighlightMaterial;
+          }
+        }
+      }
+    });
   }
 
   resize() {
@@ -90,12 +142,12 @@ export default class {
   }
 
   refreshUI() {
-    setTimeout(function () {}, 0);
+    setTimeout(function() {}, 0);
   }
 
   setFileName(path) {
     if (this.hasCacheSupport) {
-      window.caches.open('gcode-viewer').then(function (cache) {
+      window.caches.open('gcode-viewer').then(function(cache) {
         var pathData = new Blob([path], { type: 'text/plain' });
         cache.put('gcodeFileName', new Response(pathData));
       });
@@ -104,9 +156,9 @@ export default class {
 
   getFileName() {
     if (this.hasCacheSupport) {
-      window.caches.open('gcode-viewer').then(function (cache) {
-        cache.match('gcodeData').then(function (response) {
-          response.text().then(function (text) {
+      window.caches.open('gcode-viewer').then(function(cache) {
+        cache.match('gcodeData').then(function(response) {
+          response.text().then(function(text) {
             return text;
           });
         });
@@ -134,7 +186,7 @@ export default class {
 
     let that = this;
     if (this.hasCacheSupport) {
-      window.caches.open('gcode-viewer').then(function (cache) {
+      window.caches.open('gcode-viewer').then(function(cache) {
         var gcodeData = new Blob([fileContents], { type: 'text/plain' });
         cache.put('gcodeData', new Response(gcodeData));
       });
@@ -144,7 +196,7 @@ export default class {
     this.gcodeProcessor.setExtruderColors(this.getExtruderColors());
     this.gcodeProcessor.scene = this.scene;
 
-    this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function () {
+    this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function() {
       if (that.hasCacheSupport) {
         that.fileData = ''; //free resourcs sooner
       }
@@ -163,7 +215,7 @@ export default class {
         mesh.isVisible = visible;
         this.travelVisible = visible;
       } catch {
-        console.log('Travel Mesh Error');
+        //console.log('Travel Mesh Error');
       }
     }
   }
@@ -172,7 +224,7 @@ export default class {
     var scene = this.scene;
     var that = this;
 
-    var makeTextPlane = function (text, color, size) {
+    var makeTextPlane = function(text, color, size) {
       var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', 50, scene, true);
       dynamicTexture.hasAlpha = true;
       dynamicTexture.drawText(text, 5, 40, 'bold 36px Arial', color, 'transparent', true);
@@ -283,9 +335,9 @@ export default class {
 
       if (this.hasCacheSupport) {
         let that = this;
-        window.caches.open('gcode-viewer').then(function (cache) {
-          cache.match('gcodeData').then(function (response) {
-            response.text().then(function (text) {
+        window.caches.open('gcode-viewer').then(function(cache) {
+          cache.match('gcodeData').then(function(response) {
+            response.text().then(function(text) {
               that.processFile(text);
               resolve();
             });
@@ -344,7 +396,7 @@ export default class {
   buildBed() {
     if (this.bedMesh !== undefined) return;
 
-    var planeMaterial = new BABYLON.StandardMaterial(this.scene);
+    var planeMaterial = new BABYLON.StandardMaterial('planeMaterial', this.scene);
     planeMaterial.alpha = 1;
     planeMaterial.diffuseColor = new BABYLON.Color3(0.25, 0.25, 0.25);
 
@@ -390,13 +442,60 @@ export default class {
   }
   registerClipIgnore(mesh) {
     let that = this;
-    mesh.onBeforeRenderObservable.add(function () {
+    mesh.onBeforeRenderObservable.add(function() {
       that.scene.clipPlane = null;
       that.scene.clipPlane2 = null;
     });
-    mesh.onAfterRenderObservable.add(function () {
+    mesh.onAfterRenderObservable.add(function() {
       that.scene.clipPlane = new BABYLON.Plane(0, 1, 0, that.zTopClipValue);
       that.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, that.zBottomClipValue);
     });
+  }
+  startCancelObjects(cancelObjects) {
+    if (this.cancelObjectMeshes.length > 0) {
+      for (let i = 0; i < this.cancelObjectMeshes.length; i++) {
+        this.cancelObjectMeshes[i].dispose();
+      }
+      this.cancelObjectMeshes = new Array();
+    }
+
+    if (!cancelObjects) {
+      return;
+    }
+
+    for (let cancelObjectIdx = 0; cancelObjectIdx < cancelObjects.length; cancelObjectIdx++) {
+      let cancelObject = cancelObjects[cancelObjectIdx];
+      let cancelMesh = new BABYLON.BoxBuilder.CreateBox(
+        'CANCELMESH:' + cancelObject.name,
+        {
+          width: Math.abs(cancelObject.x[1] - cancelObject.x[0]),
+          height: 200,
+          depth: Math.abs(cancelObject.y[1] - cancelObject.y[0]),
+          sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+        },
+        this.scene
+      );
+      cancelMesh.position.x = (cancelObject.x[1] + cancelObject.x[0]) / 2;
+      cancelMesh.position.y = 90;
+      cancelMesh.position.z = (cancelObject.y[1] + cancelObject.y[0]) / 2;
+      cancelObject.index = cancelObjectIdx;
+      cancelMesh.metadata = cancelObject;
+      cancelMesh.enablePointerMoveEvents = true;
+      this.setObjectTexture(cancelMesh);
+      cancelMesh.setEnabled(this.showCancelObjects);
+      this.registerClipIgnore(cancelMesh);
+      this.cancelObjectMeshes.push(cancelMesh);
+    }
+  }
+  showObjectSelection(visible) {
+    this.showCancelObjects = visible;
+    this.cancelObjectMeshes.forEach((mesh) => mesh.setEnabled(visible));
+  }
+  setObjectTexture(mesh) {
+    if (mesh.metadata.cancelled) {
+      mesh.material = this.cancelMeshCancelledMaterial;
+    } else {
+      mesh.material = this.cancelMeshMaterial;
+    }
   }
 }

@@ -69,7 +69,7 @@
       </v-col>
       <v-dialog v-model="objectDialogData.showDialog" max-width="300">
          <v-card>
-            <v-card-title class="headline">{{ objectDialogData.info.canelled ? 'Cancel' : 'Resume' }} Object</v-card-title>
+            <v-card-title class="headline">{{ objectDialogData.info.cancelled ? 'Resume' : 'Cancel' }} Object</v-card-title>
             <v-card-text> {{ objectDialogData.info.name }}</v-card-text>
             <v-card-actions>
                <v-row no-gutters>
@@ -116,7 +116,7 @@
         sliderBottomHeight: 0,
         liveZTracking: false,
         forceWireMode: false,
-        vertexAlpha: true,
+        vertexAlpha: false,
         spreadLines: false,
         showObjectSelection: false,
         objectDialogData: {
@@ -264,10 +264,9 @@
            this.objectDialogData.info = selectedObject;
         },
         async objectDialogCancelObject() {
-           //M486 Pindex
+           this.objectDialogData.showDialog = false;
            let action = this.objectDialogData.info.cancelled ? 'U' : 'P';
            await this.sendCode(`M486 ${action}${this.objectDialogData.info.index}`);
-           this.objectDialogData.showDialog = false;
            this.objectDialogData.info = {};
         },
      },

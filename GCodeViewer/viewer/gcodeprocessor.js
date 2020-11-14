@@ -247,7 +247,6 @@ export default class {
   }
 
   pauseProcessing() {
-    console.log('One Moment');
     return new Promise((resolve) => setTimeout(resolve));
   }
 

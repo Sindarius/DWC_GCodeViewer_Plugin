@@ -93,35 +93,9 @@ export default class {
       light2.position = that.scene.cameras[0].position;
     });
 
+    this.rebuildMaterials();
     this.buildBed();
     this.resetCamera();
-
-    this.cancelMeshMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
-    this.cancelMeshMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.1);
-    this.cancelMeshMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-    this.cancelMeshMaterial.alpha = this.alphaLevel;
-    this.cancelMeshMaterial.needAlphaTesting = () => true;
-    this.cancelMeshMaterial.separateCullingPass = true;
-    this.cancelMeshMaterial.backFaceCulling = true;
-
-    this.cancelMeshHighlightMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
-    this.cancelMeshHighlightMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
-    this.cancelMeshHighlightMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-    this.cancelMeshHighlightMaterial.alpha = this.alphaLevel;
-    this.cancelMeshHighlightMaterial.needAlphaTesting = () => true;
-    this.cancelMeshHighlightMaterial.separateCullingPass = true;
-    this.cancelMeshHighlightMaterial.backFaceCulling = true;
-
-    this.cancelMeshCancelledMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
-    this.cancelMeshCancelledMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
-    this.cancelMeshCancelledMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-    this.cancelMeshCancelledMaterial.alpha = this.alphaLevel;
-    this.cancelMeshCancelledMaterial.needAlphaTesting = () => true;
-    this.cancelMeshCancelledMaterial.separateCullingPass = true;
-    this.cancelMeshCancelledMaterial.backFaceCulling = true;
-
-    let material = new BABYLON.Texture.CreateFromBase64String(this.xmark, 'checkerboard', this.scene);
-    this.cancelMeshCancelledMaterial.diffuseTexture = material;
 
     this.scene.onPointerObservable.add((pointerInfo) => {
       let pickInfo = pointerInfo.pickInfo;
@@ -150,6 +124,35 @@ export default class {
         }
       }
     });
+  }
+
+  rebuildMaterials() {
+    this.cancelMeshMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
+    this.cancelMeshMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.1);
+    this.cancelMeshMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+    this.cancelMeshMaterial.alpha = this.alphaLevel;
+    this.cancelMeshMaterial.needAlphaTesting = () => true;
+    this.cancelMeshMaterial.separateCullingPass = true;
+    this.cancelMeshMaterial.backFaceCulling = true;
+
+    this.cancelMeshHighlightMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
+    this.cancelMeshHighlightMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    this.cancelMeshHighlightMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+    this.cancelMeshHighlightMaterial.alpha = this.alphaLevel;
+    this.cancelMeshHighlightMaterial.needAlphaTesting = () => true;
+    this.cancelMeshHighlightMaterial.separateCullingPass = true;
+    this.cancelMeshHighlightMaterial.backFaceCulling = true;
+
+    this.cancelMeshCancelledMaterial = new BABYLON.StandardMaterial('cancelMeshMaterial', this.scene);
+    this.cancelMeshCancelledMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    this.cancelMeshCancelledMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+    this.cancelMeshCancelledMaterial.alpha = this.alphaLevel;
+    this.cancelMeshCancelledMaterial.needAlphaTesting = () => true;
+    this.cancelMeshCancelledMaterial.separateCullingPass = true;
+    this.cancelMeshCancelledMaterial.backFaceCulling = true;
+
+    let material = new BABYLON.Texture.CreateFromBase64String(this.xmark, 'checkerboard', this.scene);
+    this.cancelMeshCancelledMaterial.diffuseTexture = material;
   }
 
   resize() {
@@ -356,6 +359,8 @@ export default class {
 
     this.toolCursor = undefined;
     this.bedMesh = undefined;
+
+    this.rebuildMaterials();
     this.buildBed();
   }
   reload() {

@@ -232,15 +232,6 @@ export default class {
     //set initial color to extruder 0
     this.currentColor = this.extruderColors[0].clone();
 
-    /*
-    for (var lineNo = 0; lineNo < lines.length; lineNo++) {
-      var line = lines[lineNo];
-      line.trim();
-      if (!line.startsWith(';')) {
-        this.processLine(line, lineNo);
-      }
-    }
-*/
     lines.reverse();
     let lineNo = 0;
     while (lines.length) {
@@ -255,7 +246,7 @@ export default class {
     file = {}; //Clear1 out the file.
   }
 
-  oneMoment() {
+  pauseProcessing() {
     console.log('One Moment');
     return new Promise((resolve) => setTimeout(resolve));
   }
@@ -377,7 +368,7 @@ export default class {
     if (this.lines.length >= this.meshBreakPoint) {
       //lets build the mesh
       this.createScene(this.scene);
-      await this.oneMoment();
+      await this.pauseProcessing();
       this.lineMeshIndex++;
     }
   }

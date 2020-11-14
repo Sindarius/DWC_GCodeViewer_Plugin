@@ -19,7 +19,7 @@ export default class {
     this.toolCursorVisible = true;
     this.travelVisible = false;
     this.isDelta = false;
-    this.debug = true;
+    this.debug = false;
     this.zTopClipValue;
     this.zBottomClipValue;
     this.renderQuality = localStorage.getItem('renderQuality');
@@ -350,7 +350,7 @@ export default class {
       var sceneEntity = this.scene.meshes[idx];
       this.scene.removeMesh(sceneEntity);
       if (typeof sceneEntity.dispose === 'function') {
-        sceneEntity.dispose(true, true);
+        sceneEntity.dispose(false, true);
       }
     }
 

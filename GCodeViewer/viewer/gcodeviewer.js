@@ -2,7 +2,6 @@
 
 import gcodeProcessor from './gcodeprocessor.js';
 import * as BABYLON from 'babylonjs';
-import { Vector3 } from 'babylonjs';
 
 export default class {
   constructor(canvas) {
@@ -20,7 +19,7 @@ export default class {
     this.toolCursorVisible = true;
     this.travelVisible = false;
     this.isDelta = false;
-    this.debug = false;
+    this.debug = true;
     this.zTopClipValue;
     this.zBottomClipValue;
     this.renderQuality = localStorage.getItem('renderQuality');
@@ -196,7 +195,7 @@ export default class {
     }
   }
 
-  processFile(fileContents) {
+  async processFile(fileContents) {
     this.clearScene();
     this.refreshUI();
 
@@ -213,7 +212,7 @@ export default class {
     this.gcodeProcessor.setProgressColor(this.getProgressColor());
     this.gcodeProcessor.scene = this.scene;
 
-    this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function() {
+    await this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function() {
       if (that.hasCacheSupport) {
         that.fileData = ''; //free resourcs sooner
       }
@@ -346,13 +345,15 @@ export default class {
   }
   clearScene() {
     this.gcodeProcessor.unregisterEvents();
+
     for (let idx = this.scene.meshes.length - 1; idx >= 0; idx--) {
       var sceneEntity = this.scene.meshes[idx];
       this.scene.removeMesh(sceneEntity);
       if (typeof sceneEntity.dispose === 'function') {
-        sceneEntity.dispose();
+        sceneEntity.dispose(true, true);
       }
     }
+
     this.toolCursor = undefined;
     this.bedMesh = undefined;
     this.buildBed();
@@ -366,14 +367,16 @@ export default class {
         window.caches.open('gcode-viewer').then(function(cache) {
           cache.match('gcodeData').then(function(response) {
             response.text().then(function(text) {
-              that.processFile(text);
-              resolve();
+              that.processFile(text).then(() => {
+                resolve();
+              });
             });
           });
         });
       } else {
-        this.processFile(this.fileData);
-        resolve();
+        this.processFile(this.fileData).then(() => {
+          resolve();
+        });
       }
     });
   }
@@ -454,7 +457,7 @@ export default class {
     this.toolCursor = new BABYLON.TransformNode('toolCursor');
     this.toolCursorMesh = BABYLON.MeshBuilder.CreateCylinder('toolposition', { diameterTop: 0, diameterBottom: 1 }, this.scene);
     this.toolCursorMesh.parent = this.toolCursor;
-    this.toolCursorMesh.position = new Vector3(0, 3, 0);
+    this.toolCursorMesh.position = new BABYLON.Vector3(0, 3, 0);
     this.toolCursorMesh.rotate(BABYLON.Axis.X, Math.PI, BABYLON.Space.LOCAL);
     this.toolCursorMesh.scaling = new BABYLON.Vector3(3, 3, 3);
     this.toolCursorMesh.isVisible = this.toolCursorVisible;

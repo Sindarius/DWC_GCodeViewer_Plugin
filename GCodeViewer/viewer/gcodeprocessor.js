@@ -203,7 +203,7 @@ export default class {
     this.everyNthRow = 20;
   }
 
-  processGcodeFile(file, renderQuality, clearCache) {
+  async processGcodeFile(file, renderQuality, clearCache) {
     this.currentZ = 0;
     this.currentRowIdx = -1;
     this.gcodeLineIndex = [];
@@ -248,14 +248,19 @@ export default class {
       var line = lines.pop();
       line.trim();
       if (!line.startsWith(';')) {
-        this.processLine(line, lineNo);
+        await this.processLine(line, lineNo);
       }
     }
 
     file = {}; //Clear1 out the file.
   }
 
-  processLine(tokenString, lineNumber) {
+  oneMoment() {
+    console.log('One Moment');
+    return new Promise((resolve) => setTimeout(resolve));
+  }
+
+  async processLine(tokenString, lineNumber) {
     //Remove the comments in the line
     let commentIndex = tokenString.indexOf(';');
     if (commentIndex > -1) {
@@ -372,6 +377,7 @@ export default class {
     if (this.lines.length >= this.meshBreakPoint) {
       //lets build the mesh
       this.createScene(this.scene);
+      await this.oneMoment();
       this.lineMeshIndex++;
     }
   }
@@ -422,7 +428,7 @@ export default class {
       colorArray = null;
 
       lineMesh.isVisible = true;
-      lineMesh.alphaIndex = this.lineMeshIndex; //Testing
+      lineMesh.alphaIndex = 0; // this.lineMeshIndex; //Testing
       lineMesh.doNotSyncBoundingInfo = true;
       lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       lineMesh.freezeNormals();
@@ -520,7 +526,7 @@ export default class {
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();
       sps.computeSubMeshes();
-      sps.mesh.alphaIndex = meshIndex;
+      sps.mesh.alphaIndex = 0; //meshIndex;
       sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       sps.mesh.freezeNormals();
       sps.mesh.doNotSyncBoundingInfo = true;

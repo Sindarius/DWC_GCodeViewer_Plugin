@@ -507,7 +507,7 @@ export default class {
           tileHeight: 4,
           tileWidth: 4,
           width: Math.abs(cancelObject.x[1] - cancelObject.x[0]),
-          height: this.gcodeProcessor.maxHeight / 1.5 + 5,
+          height: this.gcodeProcessor.maxHeight + 10,
           depth: Math.abs(cancelObject.y[1] - cancelObject.y[0]),
           sideOrientation: BABYLON.Mesh.FRONTSIDE,
         },
@@ -515,7 +515,7 @@ export default class {
       );
 
       cancelMesh.position.x = (cancelObject.x[1] + cancelObject.x[0]) / 2;
-      cancelMesh.position.y = this.gcodeProcessor.maxHeight / 4 + 9.75;
+      cancelMesh.position.y = this.gcodeProcessor.maxHeight / 2 - 4;
       cancelMesh.position.z = (cancelObject.y[1] + cancelObject.y[0]) / 2;
       cancelMesh.alphaIndex = 5000000;
       cancelObject.index = cancelObjectIdx;

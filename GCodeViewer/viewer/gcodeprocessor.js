@@ -284,10 +284,11 @@ export default class {
                 if (this.spreadLines) {
                   this.currentPosition.y *= this.spreadLineAmount;
                 }
-                this.maxHeight = this.currentPosition.y;
+                // this.maxHeight = this.currentPosition.y;
                 break;
               case 'E':
                 line.extruding = true;
+                this.maxHeight = this.currentPosition.y; //trying to get the max height of the model.
                 break;
               case 'F':
                 this.currentFeedRate = Number(token.substring(1));
@@ -398,6 +399,9 @@ export default class {
         if (this.lineVertexAlpha) {
           data.colors[0].a = 0.5;
           data.colors[1].a = 0.5;
+        } else {
+          data.colors[0].a = 1;
+          data.colors[1].a = 1;
         }
         lineArray.push(data.points);
         colorArray.push(data.colors);

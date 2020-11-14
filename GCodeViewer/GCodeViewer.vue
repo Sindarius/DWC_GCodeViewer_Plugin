@@ -1,58 +1,86 @@
 <template>
    <div class="primary-container" v-resize="resize">
-      <div class="controls pa-1 ma-0">
+      <div class="controls pr-2 ma-0">
          <v-card>
             <v-btn @click="reset" block>Reset View</v-btn>
-            <v-btn @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
-            <v-btn @click="loadRunningJob" :disabled="!isJobRunning || loading" block>Load Current Job</v-btn>
-            <v-btn @click="clearScene" v-show="debugVisible" :disabled="loading" block>Clear Scene</v-btn>
-            <v-checkbox v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-checkbox>
-            <v-checkbox v-model="showCursor" label="Show Cursor"></v-checkbox>
+            <v-btn class="mt-2" @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
+            <v-btn class="mt-2" @click="loadRunningJob" :disabled="!isJobRunning || loading" block>Load Current Job</v-btn>
+            <v-btn class="mt-2" @click="clearScene" :disabled="loading" block>Unload GCode</v-btn>
+            <v-switch class="mt-4" v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-switch>
+            <v-switch v-model="showCursor" label="Show Cursor"></v-switch>
             <!--v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox-->
          </v-card>
-         <v-card>
-            <h3>Render Quality</h3>
-            <v-btn-toggle exclusive mandatory v-model="renderQuality" class="btn-toggle">
-               <v-btn :value="1">SBC</v-btn>
-               <v-btn :value="2">Low</v-btn>
-               <v-btn :value="3">Medium</v-btn>
-               <v-btn :value="4">High</v-btn>
-               <v-btn :value="5">Ultra</v-btn>
-               <v-btn :value="6">Max</v-btn>
-            </v-btn-toggle>
-            <v-checkbox v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
-            <v-checkbox v-model="vertexAlpha" label="Wire Vertex Alpha"></v-checkbox>
-            <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
-         </v-card>
-         <v-card v-for="(extruder, index) in extruderColors" :key="index">
-            <h3>Tool {{ index.axes }}</h3>
-            <gcodeviewer-color-picker
-               :editcolor="extruder"
-               @updatecolor="
-                  (value) => {
-                     updateColor(index, value);
-                  }
-               "
-            >
-            </gcodeviewer-color-picker>
-         </v-card>
-         <v-card>
-            <v-btn block @click="resetExtruderColors">Reset Extruder Colors</v-btn>
-         </v-card>
-         <v-card>
-            <v-slider min="0.1" :max="maxHeight" v-model="sliderHeight" thumb-label thumb-size="24" label="T Slider" step="0.1"></v-slider>
-            <v-slider min="0.1" :max="maxHeight" v-model="sliderBottomHeight" thumb-label thumb-size="24" label="B Slider" step="0.1"></v-slider>
+         <v-expansion-panels>
+            <v-expansion-panel>
+               <v-expansion-panel-header><strong>Render Quality</strong></v-expansion-panel-header>
+               <v-expansion-panel-content>
+                  <v-btn-toggle block exclusive mandatory v-model="renderQuality" class="btn-toggle d-flex">
+                     <v-btn block :value="1">SBC</v-btn>
+                     <v-btn block :value="2">Low</v-btn>
+                     <v-btn block :value="3">Medium</v-btn>
+                     <v-btn block :value="4">High</v-btn>
+                     <v-btn block :value="5">Ultra</v-btn>
+                     <v-btn block :value="6">Max</v-btn>
+                  </v-btn-toggle>
+                  <v-checkbox class="mt-4" v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
+                  <v-checkbox v-model="vertexAlpha" label="Wire Vertex Alpha"></v-checkbox>
+                  <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
+               </v-expansion-panel-content>
+            </v-expansion-panel>
+            <v-expansion-panel>
+               <v-expansion-panel-header><strong>Extruders</strong></v-expansion-panel-header>
+               <v-expansion-panel-content>
+                  <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
+                  <v-card v-for="(extruder, index) in extruderColors" :key="index">
+                     <h3>Tool {{ index }}</h3>
+                     <gcodeviewer-color-picker
+                        :editcolor="extruder"
+                        @updatecolor="
+                           (value) => {
+                              updateColor(index, value);
+                           }
+                        "
+                     >
+                     </gcodeviewer-color-picker>
+                  </v-card>
+                  <v-card>
+                     <v-btn block class="mt-4" @click="resetExtruderColors" color="warning">Reset Extruder Colors</v-btn>
+                  </v-card>
+               </v-expansion-panel-content>
+            </v-expansion-panel>
+            <v-expansion-panel>
+               <v-expansion-panel-header><strong>Progress</strong></v-expansion-panel-header>
+               <v-expansion-panel-content>
+                  <v-card>
+                     <div>Top Clipping</div>
+                     <v-slider min="0.1" :max="maxHeight" v-model="sliderHeight" thumb-label thumb-size="24" step="0.1"></v-slider>
+                     <div>Bottom Clipping</div>
+                     <v-slider min="0.1" :max="maxHeight" v-model="sliderBottomHeight" thumb-label thumb-size="24" step="0.1"></v-slider>
 
-            <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
-         </v-card>
-         <v-card>
-            <h3>Progress Color</h3>
-            <gcodeviewer-color-picker :editcolor="progressColor" @updatecolor="(value) => updateProgressColor(value)"></gcodeviewer-color-picker>
-         </v-card>
-         <v-card>
-            <h3>Background</h3>
-            <gcodeviewer-color-picker :editcolor="backgroundColor" @updatecolor="(value) => updateBackground(value)"></gcodeviewer-color-picker>
-         </v-card>
+                     <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
+                  </v-card>
+                  <v-card>
+                     <h3>Progress Color</h3>
+                     <gcodeviewer-color-picker
+                        :editcolor="progressColor"
+                        @updatecolor="(value) => updateProgressColor(value)"
+                     ></gcodeviewer-color-picker>
+                  </v-card>
+               </v-expansion-panel-content>
+            </v-expansion-panel>
+            <v-expansion-panel>
+               <v-expansion-panel-header><strong>Settings</strong></v-expansion-panel-header>
+               <v-expansion-panel-content>
+                  <v-card>
+                     <h3>Background</h3>
+                     <gcodeviewer-color-picker
+                        :editcolor="backgroundColor"
+                        @updatecolor="(value) => updateBackground(value)"
+                     ></gcodeviewer-color-picker>
+                  </v-card>
+               </v-expansion-panel-content>
+            </v-expansion-panel>
+         </v-expansion-panels>
       </div>
       <div class="viewer-box">
          <canvas ref="viewerCanvas" class="babylon-canvas" />
@@ -150,7 +178,7 @@
         viewer.isDelta = this.isDelta;
         viewer.objectCallback = this.objectSelectionCallback;
         viewer.init();
-
+        viewer.setCursorVisiblity(this.showCursor);
         this.renderQuality = viewer.renderQuality;
         this.extruderColors = viewer.getExtruderColors();
         this.backgroundColor = viewer.getBackgroundColor();
@@ -334,6 +362,7 @@
         },
         isJobRunning: function (newValue) {
            if (!newValue) {
+              viewer.setLiveTracking(false);
               viewer.updatePrintProgress(0);
            }
         },
@@ -378,5 +407,15 @@
      position: relative;
      width: 100%;
      height: 70vh;
+  }
+
+  .v-input--checkbox {
+     margin: 0;
+     padding: 0;
+  }
+
+  .v-input--switch {
+     margin: 0;
+     padding: 0;
   }
 </style>

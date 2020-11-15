@@ -47,8 +47,17 @@ export default class {
 
     this.hasCacheSupport = 'caches' in window;
     if (this.hasCacheSupport) {
-      console.info('Cache support enabled');
+      window.caches
+        .open('gcode-viewer')
+        .then(() => {
+          console.info('Cache support enabled');
+        })
+        .catch(() => {
+			//Chrome and safari hide caches when not available. Firefox exposes it regardless so we have to force a fail to see if it is supported
+          this.hasCacheSupport = false;
+        });
     }
+
   }
   getMaxHeight() {
     return this.maxHeight;

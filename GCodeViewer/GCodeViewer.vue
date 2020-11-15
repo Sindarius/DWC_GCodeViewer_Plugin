@@ -400,6 +400,7 @@
         },
         selectedFile: function () {
            this.showObjectSelection = false;
+           viewer.updatePrintProgress(0);
         },
      },
   };

@@ -147,7 +147,7 @@
         isJobRunning: (state) => state.state.status === StatusType.simulating || state.state.status === StatusType.processing,
         visualizingCurrentJob: function (state) {
            try {
-              return state.job.file.fileName === this.selectedFile;
+              return state.job.file.fileName === this.selectedFile && this.isJobRunning;
            } catch {
               return false;
            }
@@ -212,7 +212,7 @@
            }
         };
 
-        viewer.setLiveTracking(this.isJobRunning && this.visualizingCurrentJob);
+        viewer.setLiveTracking(this.visualizingCurrentJob);
 
         this.$root.$on('view-3d-model', this.viewModelEvent);
 
@@ -264,7 +264,7 @@
               type: 'text',
            });
            try {
-              viewer.setLiveTracking(this.isJobRunning);
+              viewer.setLiveTracking(this.visualizingCurrentJob);
               viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
               await viewer.processFile(blob);
               this.maxHeight = viewer.getMaxHeight();
@@ -285,6 +285,7 @@
            viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
            viewer.reload().finally(() => {
               this.loading = false;
+              viewer.setLiveTracking(this.visualizingCurrentJob);
               viewer.setCursorVisiblity(this.showCursor);
               viewer.toggleTravels(this.showTravelLines);
               this.maxHeight = viewer.getMaxHeight();
@@ -339,8 +340,10 @@
            }
         },
         filePosition: function (newValue) {
-           let progressPercent = newValue / this.fileSize;
-           viewer.updatePrintProgress(progressPercent);
+           if (this.visualizingCurrentJob) {
+              let progressPercent = newValue / this.fileSize;
+              viewer.updatePrintProgress(progressPercent);
+           }
         },
         nthRow: function (newValue) {
            viewer.gcodeProcessor.everyNthRow = newValue;
@@ -394,6 +397,9 @@
            if (!newValue) {
               viewer.setZClipPlane(this.maxHeight, 0);
            }
+        },
+        selectedFile: function () {
+           this.showObjectSelection = false;
         },
      },
   };

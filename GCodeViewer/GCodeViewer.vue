@@ -4,7 +4,7 @@
          <v-card>
             <v-btn @click="reset" block>Reset View</v-btn>
             <v-btn class="mt-2" @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
-            <v-btn class="mt-2" @click="loadRunningJob" :disabled="!isJobRunning || loading" block>Load Current Job</v-btn>
+            <v-btn class="mt-2" @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block>Load Current Job</v-btn>
             <v-btn class="mt-2" @click="clearScene" :disabled="loading" block>Unload GCode</v-btn>
             <v-switch class="mt-4" v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-switch>
             <v-switch v-model="showCursor" label="Show Cursor"></v-switch>
@@ -15,12 +15,12 @@
                <v-expansion-panel-header><strong>Render Quality</strong></v-expansion-panel-header>
                <v-expansion-panel-content eager>
                   <v-btn-toggle block exclusive v-model="renderQuality" class="btn-toggle d-flex">
-                     <v-btn block :value="1">SBC</v-btn>
-                     <v-btn block :value="2">Low</v-btn>
-                     <v-btn block :value="3">Medium</v-btn>
-                     <v-btn block :value="4">High</v-btn>
-                     <v-btn block :value="5">Ultra</v-btn>
-                     <v-btn block :value="6">Max</v-btn>
+                     <v-btn block :value="1" :disabled="loading">SBC</v-btn>
+                     <v-btn block :value="2" :disabled="loading">Low</v-btn>
+                     <v-btn block :value="3" :disabled="loading">Medium</v-btn>
+                     <v-btn block :value="4" :disabled="loading">High</v-btn>
+                     <v-btn block :value="5" :disabled="loading">Ultra</v-btn>
+                     <v-btn block :value="6" :disabled="loading">Max</v-btn>
                   </v-btn-toggle>
                   <v-checkbox class="mt-4" v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
                   <v-checkbox v-model="vertexAlpha" label="Wire Vertex Alpha"></v-checkbox>
@@ -240,12 +240,19 @@
         },
         async loadRunningJob() {
            this.loading = true;
+
+           if (this.selectedFile != this.job.file.fileName) {
+              this.selectedFile = '';
+              viewer.clearScene(true);
+           }
            this.selectedFile = this.job.file.fileName;
+
            let blob = await this.machineDownload({
               filename: this.job.file.fileName,
               type: 'text',
            });
            try {
+              viewer.setLiveTracking(this.isJobRunning);
               viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
               await viewer.processFile(blob);
               this.maxHeight = viewer.getMaxHeight();
@@ -279,7 +286,8 @@
            });
         },
         clearScene() {
-           viewer.clearScene();
+           this.selectedFile = '';
+           viewer.clearScene(true);
         },
         objectSelectionCallback(selectedObject) {
            this.objectDialogData.showDialog = true;
@@ -328,7 +336,9 @@
         renderQuality: function (newValue) {
            if (viewer.renderQuality !== newValue) {
               viewer.updateRenderQuality(newValue);
-              this.reloadviewer();
+              if (!this.loading) {
+                 this.reloadviewer();
+              }
            }
         },
         sliderHeight: function (newValue) {
@@ -365,6 +375,11 @@
            if (!newValue) {
               viewer.setLiveTracking(false);
               viewer.updatePrintProgress(0);
+           }
+        },
+        liveZTracking: function (newValue) {
+           if (!newValue) {
+              viewer.setZClipPlane(this.maxHeight, 0);
            }
         },
      },

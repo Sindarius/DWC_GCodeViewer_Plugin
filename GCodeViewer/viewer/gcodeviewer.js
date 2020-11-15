@@ -373,7 +373,10 @@ export default class {
     }
     localStorage.setItem('sceneBackgroundColor', color);
   }
-  clearScene() {
+  clearScene(clearFileData) {
+    if (this.fileData && clearFileData) {
+      this.fileData = '';
+    }
     this.gcodeProcessor.unregisterEvents();
 
     for (let idx = this.scene.meshes.length - 1; idx >= 0; idx--) {

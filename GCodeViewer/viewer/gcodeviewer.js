@@ -53,11 +53,10 @@ export default class {
           console.info('Cache support enabled');
         })
         .catch(() => {
-			//Chrome and safari hide caches when not available. Firefox exposes it regardless so we have to force a fail to see if it is supported
+          //Chrome and safari hide caches when not available. Firefox exposes it regardless so we have to force a fail to see if it is supported
           this.hasCacheSupport = false;
         });
     }
-
   }
   getMaxHeight() {
     return this.maxHeight;
@@ -210,11 +209,13 @@ export default class {
     var bedSize = this.getBedSize();
     (this.scene.activeCamera.alpha = Math.PI / 2), (this.scene.activeCamera.beta = 2.356194);
     if (this.isDelta) {
-      this.scene.activeCamera.radius = -this.getBedSize().diameter * 2;
+      this.scene.activeCamera.radius = -bedSize.diameter * 2;
       this.scene.activeCamera.target = new BABYLON.Vector3(0, 0, 0);
+      this.scene.activeCamera.position = new BABYLON.Vector3(0, -bedSize.diameter * 1.5, 0);
     } else {
       this.scene.activeCamera.radius = -250;
       this.scene.activeCamera.target = new BABYLON.Vector3(bedSize.x / 2, 0, bedSize.y / 2);
+      this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x / 4, bedSize.x * 1.25, -bedSize.y / 4);
     }
   }
 

@@ -177,16 +177,16 @@
      mounted() {
         viewer = new gcodeViewer(this.$refs.viewerCanvas);
         viewer.isDelta = this.isDelta;
-        viewer.objectCallback = this.objectSelectionCallback;
-        viewer.labelCallback = (label) => {
+        viewer.init();
+
+        viewer.buildObjects.objectCallback = this.objectSelectionCallback;
+        viewer.buildObjects.labelCallback = (label) => {
            if (this.showObjectSelection) {
               this.hoverLabel = label;
            } else {
               this.hoverLabel = '';
            }
         };
-
-        viewer.init();
 
         if (this.move.axes) {
            for (var axesIdx in this.move.axes) {
@@ -307,7 +307,7 @@
               this.sliderHeight = this.maxHeight;
               this.sliderBottomHeight = 0;
               try {
-                 viewer.loadObjectBoundaries(this.job.build.objects);
+                 viewer.buildObjects.loadObjectBoundaries(this.job.build.objects);
               } catch {
                  console.warn('No objects');
               }
@@ -409,13 +409,15 @@
         'job.build.objects': {
            deep: true,
            handler(newValue) {
-              viewer.loadObjectBoundaries(newValue);
+              if (viewer && viewer.buildObjects) {
+                 viewer.buildObjects.loadObjectBoundaries(newValue);
+              }
            },
         },
         showObjectSelection: function (newValue) {
            if (this.canCancelObject) {
-              viewer.loadObjectBoundaries(this.job.build.objects);
-              viewer.showObjectSelection(newValue);
+              viewer.buildObjects.loadObjectBoundaries(this.job.build.objects);
+              viewer.buildObjects.showObjectSelection(newValue);
            } else {
               this.showObjectSelection = false;
               this.hoverLabel = '';

@@ -40,8 +40,10 @@ export default class {
     this.cancelMeshCancelledMaterial;
     this.cancelHitTimer = 0;
     this.showCancelObjects = false;
+
     this.objectCallback;
     this.renderFailedCallback;
+    this.labelCallback;
 
     this.hasCacheSupport = 'caches' in window;
     if (this.hasCacheSupport) {
@@ -113,7 +115,6 @@ export default class {
             if (Date.now() - this.cancelHitTimer > 1000) {
               return;
             }
-
             if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes('CANCELMESH') && this.objectCallback) {
               this.objectCallback(pickInfo.pickedMesh.metadata);
             }
@@ -123,6 +124,13 @@ export default class {
           this.cancelObjectMeshes.forEach((mesh) => this.setObjectTexture(mesh));
           if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes('CANCELMESH')) {
             pickInfo.pickedMesh.material = this.cancelMeshHighlightMaterial;
+            if (this.labelCallback) {
+              this.labelCallback(pickInfo.pickedMesh.metadata.name);
+            }
+          } else {
+            if (this.labelCallback) {
+              this.labelCallback('');
+            }
           }
         }
       }

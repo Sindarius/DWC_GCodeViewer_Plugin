@@ -2,17 +2,17 @@
    <div class="primary-container" v-resize="resize">
       <div class="controls pr-2 ma-0">
          <v-card>
-            <v-btn @click="reset" block>Reset View</v-btn>
-            <v-btn class="mt-2" @click="reloadviewer" :disabled="loading" block>Reload View</v-btn>
-            <v-btn class="mt-2" @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block>Load Current Job</v-btn>
-            <v-btn class="mt-2" @click="clearScene" :disabled="loading" block>Unload GCode</v-btn>
+            <v-btn @click="reset" block><v-icon class="mr-2">mdi-camera</v-icon> Reset Camera</v-btn>
+            <v-btn class="mt-2" @click="reloadviewer" :disabled="loading" block><v-icon class="mr-2">mdi-reload-alert</v-icon>Reload View</v-btn>
+            <v-btn class="mt-2" @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block><v-icon class="mr-2">mdi-printer-3d</v-icon>Load Current Job</v-btn>
+            <v-btn class="mt-2" @click="clearScene" :disabled="loading" block><v-icon class="mr-2">mdi-video-3d-off</v-icon>Unload GCode</v-btn>
             <v-switch class="mt-4" v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-switch>
             <v-switch v-model="showCursor" label="Show Cursor"></v-switch>
             <!--v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox-->
          </v-card>
          <v-expansion-panels>
             <v-expansion-panel>
-               <v-expansion-panel-header><strong>Render Quality</strong></v-expansion-panel-header>
+               <v-expansion-panel-header><v-icon class="mr-2">mdi-checkerboard</v-icon><strong>Render Quality</strong></v-expansion-panel-header>
                <v-expansion-panel-content eager>
                   <v-btn-toggle block exclusive v-model="renderQuality" class="btn-toggle d-flex">
                      <v-btn block :value="1" :disabled="loading">SBC</v-btn>
@@ -28,7 +28,7 @@
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
-               <v-expansion-panel-header><strong>Extruders</strong></v-expansion-panel-header>
+               <v-expansion-panel-header><v-icon class="mr-2">mdi-printer-3d-nozzle</v-icon><strong>Extruders</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
                   <v-card v-for="(extruder, index) in extruderColors" :key="index">
@@ -49,7 +49,7 @@
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
-               <v-expansion-panel-header><strong>Progress</strong></v-expansion-panel-header>
+               <v-expansion-panel-header><v-icon class="mr-2">mdi-progress-clock</v-icon><strong>Progress</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-card>
                      <div>Top Clipping</div>
@@ -66,7 +66,7 @@
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
-               <v-expansion-panel-header><strong>Settings</strong></v-expansion-panel-header>
+               <v-expansion-panel-header><v-icon class="mr-2">mdi-cog</v-icon><strong>Settings</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-card>
                      <h3>Background</h3>
@@ -77,12 +77,15 @@
          </v-expansion-panels>
       </div>
       <div class="viewer-box">
-         <canvas ref="viewerCanvas" class="babylon-canvas" />
+         <canvas ref="viewerCanvas" class="babylon-canvas" :title="hoverLabel" />
       </div>
 
       <v-dialog v-model="objectDialogData.showDialog" max-width="300">
          <v-card>
-            <v-card-title class="headline">{{ objectDialogData.info.cancelled ? 'Resume' : 'Cancel' }} Object</v-card-title>
+            <v-card-title class="headline"
+               ><v-icon class="mr-2">{{ objectDialogData.info.cancelled ? 'mdi-reload' : 'mdi-cancel' }}</v-icon
+               >{{ objectDialogData.info.cancelled ? 'Resume' : 'Cancel' }} Object</v-card-title
+            >
             <v-card-text> {{ objectDialogData.info.name }}</v-card-text>
             <v-card-actions>
                <v-row no-gutters>
@@ -137,6 +140,7 @@
            showDialog: false,
            info: {},
         },
+        hoverLabel: '',
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -172,6 +176,14 @@
         viewer = new gcodeViewer(this.$refs.viewerCanvas);
         viewer.isDelta = this.isDelta;
         viewer.objectCallback = this.objectSelectionCallback;
+        viewer.labelCallback = (label) => {
+           if (this.showObjectSelection) {
+              this.hoverLabel = label;
+           } else {
+              this.hoverLabel = '';
+           }
+        };
+
         viewer.init();
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
@@ -369,6 +381,7 @@
               viewer.showObjectSelection(newValue);
            } else {
               this.showObjectSelection = false;
+              this.hoverLabel = '';
            }
         },
         isJobRunning: function (newValue) {

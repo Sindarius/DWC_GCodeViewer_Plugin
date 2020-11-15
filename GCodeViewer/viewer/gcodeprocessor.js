@@ -83,7 +83,6 @@ export default class {
     this.spreadLines = false;
     this.spreadLineAmount = 10;
     this.debug = false;
-
     this.specularColor = new BABYLON.Color4(0.1, 0.1, 0.1, 0.1);
   }
 

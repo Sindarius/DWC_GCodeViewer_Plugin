@@ -12,11 +12,9 @@
          </v-card>
          <v-expansion-panels>
             <v-expansion-panel>
-               <v-expansion-panel-header>
-                  <strong>Render Quality</strong>
-               </v-expansion-panel-header>
-               <v-expansion-panel-content>
-                  <v-btn-toggle block exclusive mandatory v-model="renderQuality" class="btn-toggle d-flex">
+               <v-expansion-panel-header><strong>Render Quality</strong></v-expansion-panel-header>
+               <v-expansion-panel-content eager>
+                  <v-btn-toggle block exclusive v-model="renderQuality" class="btn-toggle d-flex">
                      <v-btn block :value="1">SBC</v-btn>
                      <v-btn block :value="2">Low</v-btn>
                      <v-btn block :value="3">Medium</v-btn>
@@ -30,9 +28,7 @@
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
-               <v-expansion-panel-header>
-                  <strong>Extruders</strong>
-               </v-expansion-panel-header>
+               <v-expansion-panel-header><strong>Extruders</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
                   <v-card v-for="(extruder, index) in extruderColors" :key="index">
@@ -44,7 +40,8 @@
                               updateColor(index, value);
                            }
                         "
-                     ></gcodeviewer-color-picker>
+                     >
+                     </gcodeviewer-color-picker>
                   </v-card>
                   <v-card>
                      <v-btn block class="mt-4" @click="resetExtruderColors" color="warning">Reset Extruder Colors</v-btn>
@@ -52,9 +49,7 @@
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
-               <v-expansion-panel-header>
-                  <strong>Progress</strong>
-               </v-expansion-panel-header>
+               <v-expansion-panel-header><strong>Progress</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-card>
                      <div>Top Clipping</div>
@@ -71,9 +66,7 @@
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
-               <v-expansion-panel-header>
-                  <strong>Settings</strong>
-               </v-expansion-panel-header>
+               <v-expansion-panel-header><strong>Settings</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-card>
                      <h3>Background</h3>
@@ -90,7 +83,7 @@
       <v-dialog v-model="objectDialogData.showDialog" max-width="300">
          <v-card>
             <v-card-title class="headline">{{ objectDialogData.info.cancelled ? 'Resume' : 'Cancel' }} Object</v-card-title>
-            <v-card-text>{{ objectDialogData.info.name }}</v-card-text>
+            <v-card-text> {{ objectDialogData.info.name }}</v-card-text>
             <v-card-actions>
                <v-row no-gutters>
                   <v-col cols="6">
@@ -107,6 +100,7 @@
 </template>
 
 <script>
+  'use strict';
   //<v-row> <v-col>{{ move }}</v-col></v-row>
 
   import gcodeViewer from './viewer/gcodeviewer.js';
@@ -129,7 +123,7 @@
         showTravelLines: false,
         selectedFile: '',
         nthRow: 1,
-        renderQuality: 0,
+        renderQuality: 1,
         debugVisible: false,
         maxHeight: 0,
         sliderHeight: 0,
@@ -179,6 +173,12 @@
         viewer.isDelta = this.isDelta;
         viewer.objectCallback = this.objectSelectionCallback;
         viewer.init();
+        if (viewer.lastLoadFailed()) {
+           this.renderQuality = 1;
+           viewer.updateRenderQuality(1);
+           this.$makeNotification('warning', 'GCode Viewer', 'Previous render failed. Setting render quality to SBC', 5000);
+           viewer.clearLoadFlag();
+        }
         viewer.setCursorVisiblity(this.showCursor);
         this.renderQuality = viewer.renderQuality;
         this.extruderColors = viewer.getExtruderColors();
@@ -258,13 +258,13 @@
            this.extruderColors = ['#00FFFFFF', '#FF00FFFF', '#FFFF00FF', '#000000FF', '#FFFFFFFF'];
            viewer.saveExtruderColors(this.extruderColors);
         },
-        async reloadviewer() {
+        reloadviewer() {
            if (this.loading) {
               return;
            }
            this.loading = true;
            viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
-           await viewer.reload().finally(() => {
+           viewer.reload().finally(() => {
               this.loading = false;
               viewer.setCursorVisiblity(this.showCursor);
               viewer.toggleTravels(this.showTravelLines);

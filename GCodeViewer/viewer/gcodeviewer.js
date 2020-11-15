@@ -5,6 +5,7 @@ import * as BABYLON from 'babylonjs';
 
 export default class {
   constructor(canvas) {
+    this.lastLoadKey = 'lastLoadFailed';
     this.fileData;
     this.gcodeProcessor = new gcodeProcessor();
     this.maxHeight = 0;
@@ -22,7 +23,8 @@ export default class {
     this.debug = false;
     this.zTopClipValue;
     this.zBottomClipValue;
-    this.renderQuality = localStorage.getItem('renderQuality');
+
+    this.renderQuality = Number(localStorage.getItem('renderQuality'));
     this.alphaLevel = 0.5;
 
     if (this.renderQuality === undefined || this.renderQuality === null) {
@@ -39,6 +41,7 @@ export default class {
     this.cancelHitTimer = 0;
     this.showCancelObjects = false;
     this.objectCallback;
+    this.renderFailedCallback;
 
     this.hasCacheSupport = 'caches' in window;
     if (this.hasCacheSupport) {
@@ -198,6 +201,23 @@ export default class {
     }
   }
 
+  lastLoadFailed() {
+    if (!localStorage) return false;
+    return localStorage.getItem(this.lastLoadKey) === 'true';
+  }
+  setLoadFlag() {
+    if (localStorage) {
+      localStorage.setItem(this.lastLoadKey, 'true');
+    }
+  }
+
+  clearLoadFlag() {
+    if (localStorage) {
+      localStorage.setItem(this.lastLoadKey, '');
+      localStorage.removeItem(this.lastLoadKey);
+    }
+  }
+
   async processFile(fileContents) {
     this.clearScene();
     this.refreshUI();
@@ -215,11 +235,18 @@ export default class {
     this.gcodeProcessor.setProgressColor(this.getProgressColor());
     this.gcodeProcessor.scene = this.scene;
 
+    if (this.lastLoadFailed()) {
+      console.error('Last rendering failed dropping to SBC quality');
+      this.updateRenderQuality(1);
+      this.clearLoadFlag();
+    }
+    this.setLoadFlag();
     await this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function() {
       if (that.hasCacheSupport) {
         that.fileData = ''; //free resourcs sooner
       }
     });
+    this.clearLoadFlag();
 
     this.gcodeProcessor.createScene(this.scene);
     this.maxHeight = this.gcodeProcessor.getMaxHeight();

@@ -6,6 +6,8 @@
             <v-btn class="mt-2" @click="reloadviewer" :disabled="loading" block><v-icon class="mr-2">mdi-reload-alert</v-icon>Reload View</v-btn>
             <v-btn class="mt-2" @click="loadRunningJob" :disabled="!isJobRunning || loading || visualizingCurrentJob" block><v-icon class="mr-2">mdi-printer-3d</v-icon>Load Current Job</v-btn>
             <v-btn class="mt-2" @click="clearScene" :disabled="loading" block><v-icon class="mr-2">mdi-video-3d-off</v-icon>Unload GCode</v-btn>
+            <v-btn class="mt-2" @click="chooseFile" :disabled="loading" block><v-icon>mdi-file</v-icon> Local GCode File</v-btn>
+            <input ref="fileInput" type="file" :accept="'.g,.gcode,.gc,.gco,.nc,.ngc,.tap'" hidden @change="fileSelected" multiple />
             <v-switch class="mt-4" v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-switch>
             <v-switch v-model="showCursor" label="Show Cursor"></v-switch>
             <!--v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox-->
@@ -311,6 +313,25 @@
            let action = this.objectDialogData.info.cancelled ? 'U' : 'P';
            await this.sendCode(`M486 ${action}${this.objectDialogData.info.index}`);
            this.objectDialogData.info = {};
+        },
+        chooseFile() {
+           if (!this.isBusy) {
+              this.$refs.fileInput.click();
+           }
+        },
+        async fileSelected(e) {
+           const reader = new FileReader();
+           reader.addEventListener('load', async (event) => {
+              const blob = event.target.result;
+              // Do something with result
+              this.loading = true;
+              await viewer.processFile(blob);
+              this.maxHeight = viewer.getMaxHeight();
+              this.sliderHeight = this.maxHeight;
+              this.loading = false;
+           });
+           reader.readAsText(e.target.files[0]);
+           e.target.value = '';
         },
      },
      watch: {

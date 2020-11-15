@@ -34,11 +34,12 @@ export default class {
 
     //Live Rendering
     this.liveTracking = false;
-    this.materialTransparency = 0.2;
+    this.materialTransparency = 0.5;
     this.gcodeLineIndex = [];
     this.gcodeLineNumber = 0;
 
     this.refreshTime = 5000;
+    this.timeStamp;
 
     this.lineLengthTolerance = 0.05;
 
@@ -234,6 +235,7 @@ export default class {
 
     lines.reverse();
     let lineNo = 0;
+    this.timeStamp = Date.now();
     while (lines.length) {
       lineNo++;
       var line = lines.pop();
@@ -241,13 +243,18 @@ export default class {
       if (!line.startsWith(';')) {
         await this.processLine(line, lineNo);
       }
+      if (Date.now() - this.timeStamp > 100) {
+        await this.pauseProcessing();
+      }
     }
 
     file = {}; //Clear1 out the file.
   }
 
   pauseProcessing() {
-    return new Promise((resolve) => setTimeout(resolve));
+    return new Promise((resolve) => setTimeout(resolve)).then(() => {
+      this.timeStamp = Date.now();
+    });
   }
 
   async processLine(tokenString, lineNumber) {
@@ -426,6 +433,8 @@ export default class {
 
       const lineSolidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
       lineSolidMat.specularColor = this.specularColor;
+      lineSolidMat.alphaMode = BABYLON.Engine.ALPHA_ONEONE;
+      lineSolidMat.needAlphaTesting = () => true;
       lineMesh.material = lineSolidMat;
 
       let lastRendered = 0;
@@ -516,7 +525,7 @@ export default class {
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();
       sps.computeSubMeshes();
-      sps.mesh.alphaIndex = 0; //meshIndex;
+      sps.mesh.alphaIndex = 0; // this.lineMeshIndex; //meshIndex;
       sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
       sps.mesh.freezeNormals();
       sps.mesh.doNotSyncBoundingInfo = true;

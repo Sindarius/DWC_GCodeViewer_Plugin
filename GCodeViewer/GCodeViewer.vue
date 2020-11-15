@@ -187,6 +187,19 @@
         };
 
         viewer.init();
+
+        if (this.move.axes) {
+           for (var axesIdx in this.move.axes) {
+              let axes = this.move.axes[axesIdx];
+              if ('XYZ'.includes(axes.letter)) {
+                 var letter = axes.letter.toLowerCase();
+                 viewer.bed.buildVolume[letter].min = axes.min;
+                 viewer.bed.buildVolume[letter].max = axes.max;
+              }
+           }
+           viewer.bed.commitBedSize();
+        }
+
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
            viewer.updateRenderQuality(1);

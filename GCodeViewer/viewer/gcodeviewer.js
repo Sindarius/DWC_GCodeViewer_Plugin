@@ -2,6 +2,7 @@
 
 import gcodeProcessor from './gcodeprocessor.js';
 import * as BABYLON from 'babylonjs';
+import Bed from './bed.js';
 
 export default class {
   constructor(canvas) {
@@ -14,7 +15,7 @@ export default class {
     this.scene = {};
     this.loading = false;
     this.toolVisible = false;
-    this.bedMesh;
+    this.bed;
     this.toolCursor;
     this.toolCursorMesh;
     this.toolCursorVisible = true;
@@ -107,7 +108,11 @@ export default class {
     });
 
     this.rebuildMaterials();
-    this.buildBed();
+    this.bed = new Bed(this.scene);
+    this.registerClipIgnore(this.bed.buildBed());
+    //Render the corner axis
+    this.registerClipIgnore(this.showWorldAxis(50));
+
     this.resetCamera();
 
     this.scene.onPointerObservable.add((pointerInfo) => {
@@ -206,16 +211,16 @@ export default class {
   }
 
   resetCamera() {
-    var bedSize = this.getBedSize();
+    var bedCenter = this.bed.getCenter();
     (this.scene.activeCamera.alpha = Math.PI / 2), (this.scene.activeCamera.beta = 2.356194);
     if (this.isDelta) {
-      this.scene.activeCamera.radius = -bedSize.diameter * 2;
+      this.scene.activeCamera.radius = -bedCenter.x;
       this.scene.activeCamera.target = new BABYLON.Vector3(0, 0, 0);
-      this.scene.activeCamera.position = new BABYLON.Vector3(0, -bedSize.diameter * 1.5, 0);
+      this.scene.activeCamera.position = new BABYLON.Vector3(0, -bedCenter.x * 1.5, 0);
     } else {
       this.scene.activeCamera.radius = -250;
-      this.scene.activeCamera.target = new BABYLON.Vector3(bedSize.x / 2, 0, bedSize.y / 2);
-      this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x / 4, bedSize.x * 1.25, -bedSize.y / 4);
+      this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
+      this.scene.activeCamera.position = new BABYLON.Vector3(-bedCenter.x / 2, bedCenter.x * 1.25, -bedCenter.y / 2);
     }
   }
 
@@ -283,7 +288,6 @@ export default class {
       }
     }
   }
-
   showWorldAxis(size) {
     var scene = this.scene;
     var that = this;
@@ -316,35 +320,6 @@ export default class {
     var zChar = makeTextPlane('Y', 'blue', size / 10);
     this.registerClipIgnore(axisZ);
     zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
-  }
-  getBedSize() {
-    if (this.isDelta) {
-      let bedSize = localStorage.getItem('deltaBedSize');
-      if (bedSize === null) {
-        bedSize = '300';
-      }
-      return { diameter: bedSize };
-    } else {
-      let bedSize = localStorage.getItem('bedSize');
-      if (bedSize === null) {
-        bedSize = [235, 235];
-      } else {
-        bedSize = bedSize.split(',');
-        if (isNaN(bedSize[0])) {
-          bedSize = [235, 235];
-        }
-      }
-
-      return { x: bedSize[0], y: bedSize[1] };
-    }
-  }
-  setBedSize(x, y) {
-    if (this.isDelta) {
-      localStorage.setItem('deltaBedSize', x);
-    } else {
-      let bedSize = [x, y];
-      localStorage.setItem('bedSize', bedSize);
-    }
   }
   getExtruderColors() {
     let colors = localStorage.getItem('extruderColors');
@@ -406,10 +381,10 @@ export default class {
     }
 
     this.toolCursor = undefined;
-    this.bedMesh = undefined;
 
     this.rebuildMaterials();
-    this.buildBed();
+    this.registerClipIgnore(this.bed.buildBed());
+    this.registerClipIgnore(this.showWorldAxis(50));
   }
   reload() {
     return new Promise((resolve) => {
@@ -477,34 +452,6 @@ export default class {
   updatePrintProgress(printPercent) {
     this.gcodeProcessor.updatePercentComplete(printPercent);
   }
-
-  buildBed() {
-    if (this.bedMesh !== undefined) return;
-
-    var planeMaterial = new BABYLON.StandardMaterial('planeMaterial', this.scene);
-    planeMaterial.alpha = 1;
-    planeMaterial.diffuseColor = new BABYLON.Color3(0.25, 0.25, 0.25);
-    planeMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-
-    if (this.isDelta) {
-      let bedSize = this.getBedSize();
-      this.bedMesh = BABYLON.MeshBuilder.CreateDisc('BuildPlate', { radius: bedSize.diameter / 2 }, this.scene);
-      this.bedMesh.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-      this.bedMesh.material = planeMaterial;
-      //this.bedMesh.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-    } else {
-      let bedSize = this.getBedSize();
-      //build the scene static objects
-      this.bedMesh = BABYLON.MeshBuilder.CreatePlane('BuildPlate', { width: bedSize.x, height: bedSize.y }, this.scene);
-      this.bedMesh.material = planeMaterial;
-      this.bedMesh.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-      this.bedMesh.translate(new BABYLON.Vector3(bedSize.x / 2, 0, bedSize.y / 2), 1, BABYLON.Space.WORLD);
-      //Render the corner axis
-      this.showWorldAxis(50);
-    }
-
-    this.registerClipIgnore(this.bedMesh);
-  }
   buildtoolCursor() {
     if (this.toolCursor !== undefined) return;
     this.toolCursor = new BABYLON.TransformNode('toolCursor');
@@ -530,6 +477,7 @@ export default class {
   }
   registerClipIgnore(mesh) {
     let that = this;
+    if (mesh === undefined || mesh === null) return;
     mesh.onBeforeRenderObservable.add(function() {
       that.scene.clipPlane = null;
       that.scene.clipPlane2 = null;

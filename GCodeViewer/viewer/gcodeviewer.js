@@ -1,7 +1,7 @@
 'use strict';
 
-import gcodeProcessor from './gcodeprocessor.js';
 import * as BABYLON from 'babylonjs';
+import gcodeProcessor from './gcodeprocessor.js';
 import Bed from './bed.js';
 import BuildObjects from './buildobjects.js';
 import Axes from './axes.js';
@@ -130,7 +130,7 @@ export default class {
           break;
         case BABYLON.PointerEventTypes.POINTERUP:
           {
-            if (Date.now() - this.cancelHitTimer > 1000) {
+            if (Date.now() - this.cancelHitTimer > 200) {
               return;
             }
             this.buildObjects.handleClick(pickInfo);
@@ -340,9 +340,6 @@ export default class {
       }
     });
   }
-  getLineCount() {
-    return this.gcodeProcessor.lineCount;
-  }
   getRenderMode() {
     return this.gcodeProcessor.renderMode;
   }
@@ -397,9 +394,6 @@ export default class {
   }
   setLiveTracking(enabled) {
     this.gcodeProcessor.setLiveTracking(enabled);
-  }
-  doFinalPass() {
-    this.gcodeProcessor.doFinalPass();
   }
   updateRenderQuality(renderQuality) {
     this.renderQuality = renderQuality;

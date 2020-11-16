@@ -84,6 +84,7 @@ export default class {
     this.spreadLineAmount = 10;
     this.debug = false;
     this.specularColor = new BABYLON.Color4(0.1, 0.1, 0.1, 0.1);
+    this.chunkLoadedCallback = () => {}; //use this to fire update events based on file load progress.
   }
 
   setExtruderColors(colors) {
@@ -374,6 +375,7 @@ export default class {
       //lets build the mesh
       this.createScene(this.scene);
       await this.pauseProcessing();
+      this.chunkLoadedCallback();
       this.lineMeshIndex++;
     }
   }
@@ -614,19 +616,12 @@ export default class {
       this.gcodeLineNumber = 0;
     }
   }
-  setLiveTracking(enabled) {
-    if (this.liveTracking && enabled == false) {
-      this.gcodeLineNumber = Number.MAX_VALUE;
-    }
-    this.liveTracking = enabled;
-  }
-
   doFinalPass() {
     this.liveTracking = true;
     this.gcodeLineNumber = Number.MAX_VALUE;
     setTimeout(() => {
       this.liveTracking = false;
-    }, this.refreshTime + 1000);
+    }, this.refreshTime + 200);
   }
 
   updateMesh() {
@@ -641,6 +636,9 @@ export default class {
       this.scene.unregisterBeforeRender(this.renderFuncs[idx]);
     }
     this.renderFuncs = [];
+  }
+  setLiveTracking(enabled) {
+    this.liveTracking = enabled;
   }
 }
 

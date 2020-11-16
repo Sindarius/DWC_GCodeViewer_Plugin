@@ -243,14 +243,13 @@
            });
            try {
               await viewer.processFile(blob);
+              viewer.gcodeProcessor.setLiveTracking(this.visualizingCurrentJob);
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
            } finally {
               this.loading = false;
            }
         };
-
-        viewer.setLiveTracking(this.visualizingCurrentJob);
 
         this.$root.$on('view-3d-model', this.viewModelEvent);
 
@@ -302,12 +301,13 @@
               type: 'text',
            });
            try {
-              viewer.setLiveTracking(this.visualizingCurrentJob);
+              viewer.gcodeProcessor.setLiveTracking(true);
               viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
               await viewer.processFile(blob);
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
            } finally {
+              viewer.buildObjects.loadObjectBoundaries(this.job.build.objects); //file is loaded lets load the final heights
               this.loading = false;
            }
         },
@@ -321,9 +321,10 @@
            }
            this.loading = true;
            viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
+           viewer.gcodeProcessor.setLiveTracking(this.visualizingCurrentJob);
+
            viewer.reload().finally(() => {
               this.loading = false;
-              viewer.setLiveTracking(this.visualizingCurrentJob);
               viewer.setCursorVisiblity(this.showCursor);
               viewer.toggleTravels(this.showTravelLines);
               this.maxHeight = viewer.getMaxHeight();
@@ -391,9 +392,8 @@
            viewer.toggleTravels(newVal);
         },
         visualizingCurrentJob: function (newValue) {
-           viewer.setLiveTracking(this.isJobRunning && newValue);
            if (newValue == false) {
-              viewer.doFinalPass();
+              viewer.gcodeProcessor.doFinalPass();
            }
         },
         filePosition: function (newValue) {
@@ -448,7 +448,7 @@
         },
         isJobRunning: function (newValue) {
            if (!newValue) {
-              viewer.setLiveTracking(false);
+              viewer.gcodeProcessor.setLiveTracking(false);
               viewer.updatePrintProgress(0);
            }
         },

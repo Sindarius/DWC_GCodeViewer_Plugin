@@ -83,7 +83,6 @@ export default class {
   buildFlatBed() {
     let bedCenter = this.getCenter();
     let bedSize = this.getSize();
-
     if (this.isDelta) {
       let radius = Math.abs(this.buildVolume.x.max - this.buildVolume.x.min) / 2;
       this.bedMesh = BABYLON.MeshBuilder.CreateDisc('BuildPlate', { radius: radius }, this.scene);

@@ -79,21 +79,21 @@ export default class {
     this.setRenderMode(this.renderMode);
   }
   buildFlatBed() {
+    let bedCenter = this.getCenter();
+    let bedSize = this.getSize();
+
     if (this.isDelta) {
       let radius = Math.abs(this.buildVolume.x.max - this.buildVolume.x.min) / 2;
       this.bedMesh = BABYLON.MeshBuilder.CreateDisc('BuildPlate', { radius: radius }, this.scene);
       this.bedMesh.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
       this.bedMesh.material = this.planeMaterial;
     } else {
-      //build the scene static objects
-      let width = Math.abs(this.buildVolume.x.max - this.buildVolume.x.min);
-      let depth = Math.abs(this.buildVolume.y.max - this.buildVolume.y.min);
-      let center = this.getCenter();
-
+      let width = bedSize.x;
+      let depth = bedSize.y;
       this.bedMesh = BABYLON.MeshBuilder.CreatePlane('BuildPlate', { width: width, height: depth }, this.scene);
       this.bedMesh.material = this.planeMaterial;
       this.bedMesh.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-      this.bedMesh.translate(new BABYLON.Vector3(center.x, 0, center.y), 1, BABYLON.Space.WORLD);
+      this.bedMesh.translate(new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y), 1, BABYLON.Space.WORLD);
     }
     this.registerClipIgnore(this.bedMesh);
   }
@@ -124,7 +124,6 @@ export default class {
         },
         this.scene
       );
-
       this.bedMesh.position.x = bedCenter.x;
       this.bedMesh.position.y = bedCenter.z;
       this.bedMesh.position.z = bedCenter.x;

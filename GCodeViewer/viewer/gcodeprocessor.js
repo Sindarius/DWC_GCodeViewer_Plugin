@@ -38,7 +38,7 @@ export default class {
     this.gcodeLineIndex = [];
     this.gcodeLineNumber = 0;
 
-    this.refreshTime = 5000;
+    this.refreshTime = 200;
     this.timeStamp;
 
     this.lineLengthTolerance = 0.05;

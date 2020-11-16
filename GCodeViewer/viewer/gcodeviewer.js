@@ -22,7 +22,6 @@ export default class {
     this.toolCursorMesh;
     this.toolCursorVisible = true;
     this.travelVisible = false;
-    this.isDelta = false;
     this.debug = false;
     this.zTopClipValue;
     this.zBottomClipValue;
@@ -96,13 +95,15 @@ export default class {
     });
 
     this.bed = new Bed(this.scene);
+    this.bed.registerClipIgnore = this.registerClipIgnore;
+    this.resetCamera();
     this.buildObjects = new BuildObjects(this.scene);
     this.buildObjects.getMaxHeight = () => {
       return this.gcodeProcessor.getMaxHeight();
     };
     this.buildObjects.registerClipIgnore = this.registerClipIgnore;
 
-    this.registerClipIgnore(this.bed.buildBed());
+    this.bed.buildBed();
     //Render the corner axis
     this.registerClipIgnore(this.showWorldAxis(50));
 
@@ -164,15 +165,16 @@ export default class {
 
   resetCamera() {
     var bedCenter = this.bed.getCenter();
+    var bedSize = this.bed.getSize();
     (this.scene.activeCamera.alpha = Math.PI / 2), (this.scene.activeCamera.beta = 2.356194);
-    if (this.isDelta) {
+    if (this.bed.isDelta) {
       this.scene.activeCamera.radius = -bedCenter.x;
-      this.scene.activeCamera.target = new BABYLON.Vector3(0, 0, 0);
-      this.scene.activeCamera.position = new BABYLON.Vector3(0, -bedCenter.x * 1.5, 0);
+      this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
+      this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x, bedSize.z, -bedSize.x);
     } else {
       this.scene.activeCamera.radius = -250;
       this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
-      this.scene.activeCamera.position = new BABYLON.Vector3(-bedCenter.x / 2, bedCenter.x * 1.25, -bedCenter.y / 2);
+      this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x / 2, bedSize.z, -bedSize.y / 2);
     }
   }
 

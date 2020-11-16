@@ -62,8 +62,10 @@
                      <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
                   </v-card>
                   <v-card>
-                     <h3>Progress Color</h3>
-                     <gcodeviewer-color-picker :editcolor="progressColor" @updatecolor="(value) => updateProgressColor(value)"></gcodeviewer-color-picker>
+                     <v-card-header>Progress Color</v-card-header>
+                     <v-card-text>
+                        <gcodeviewer-color-picker :editcolor="progressColor" @updatecolor="(value) => updateProgressColor(value)"></gcodeviewer-color-picker>
+                     </v-card-text>
                   </v-card>
                </v-expansion-panel-content>
             </v-expansion-panel>
@@ -71,8 +73,15 @@
                <v-expansion-panel-header><v-icon class="mr-2">mdi-cog</v-icon><strong>Settings</strong></v-expansion-panel-header>
                <v-expansion-panel-content>
                   <v-card>
-                     <h3>Background</h3>
+                     <v-card-title>Background</v-card-title>
                      <gcodeviewer-color-picker :editcolor="backgroundColor" @updatecolor="(value) => updateBackground(value)"></gcodeviewer-color-picker>
+                  </v-card>
+                  <v-card>
+                     <v-card-title>Bed Render Mode</v-card-title>
+                     <v-btn-toggle v-model="bedRenderMode">
+                        <v-btn block :value="0">Bed</v-btn>
+                        <v-btn block :value="1">Volume</v-btn>
+                     </v-btn-toggle>
                   </v-card>
                </v-expansion-panel-content>
             </v-expansion-panel>
@@ -143,6 +152,7 @@
            info: {},
         },
         hoverLabel: '',
+        bedRenderMode: 0,
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -176,7 +186,6 @@
      },
      mounted() {
         viewer = new gcodeViewer(this.$refs.viewerCanvas);
-        viewer.isDelta = this.isDelta;
         viewer.init();
 
         viewer.buildObjects.objectCallback = this.objectSelectionCallback;
@@ -199,6 +208,9 @@
            }
            viewer.bed.commitBedSize();
         }
+
+        viewer.bed.setDelta(this.isDelta);
+        this.bedRenderMode = viewer.bed.renderMode;
 
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
@@ -337,12 +349,12 @@
            reader.addEventListener('load', async (event) => {
               const blob = event.target.result;
               // Do something with result
-              this.loading = true;
               await viewer.processFile(blob);
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
               this.loading = false;
            });
+           this.loading = true;
            reader.readAsText(e.target.files[0]);
            e.target.value = '';
         },
@@ -437,6 +449,13 @@
         selectedFile: function () {
            this.showObjectSelection = false;
            viewer.updatePrintProgress(0);
+        },
+        bedRenderMode: function (newValue) {
+           viewer.bed.setRenderMode(newValue);
+        },
+        isDelta: function (newValue) {
+           viewer.bed.setDelta(newValue);
+           viewer.resetCamera();
         },
      },
   };

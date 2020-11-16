@@ -37,9 +37,9 @@ export default class {
   }
   rebuildMaterials() {
     this.baseMaterial = this.setBuildMaterial('BuildObjectBaseMaterial', new BABYLON.Color3(0.1, 0.5, 0.1));
-    this.highlightMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(0.5, 0.5, 0.5));
+    this.highlightMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(0.8, 0.8, 0.8));
     this.cancelledMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(1, 0, 0));
-    this.cancelledHighlightMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(1, 1, 0), 0.25);
+    this.cancelledHighlightMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(1, 1, 0), 0.6);
     let material = new BABYLON.Texture.CreateFromBase64String(this.xmark, 'checkerboard', this.scene);
     this.cancelledMaterial.diffuseTexture = material;
     this.cancelledHighlightMaterial.diffuseTexture = material;

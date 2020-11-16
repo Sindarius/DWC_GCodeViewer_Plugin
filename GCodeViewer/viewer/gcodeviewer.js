@@ -4,6 +4,7 @@ import gcodeProcessor from './gcodeprocessor.js';
 import * as BABYLON from 'babylonjs';
 import Bed from './bed.js';
 import BuildObjects from './buildobjects.js';
+import Axes from './axes.js';
 
 export default class {
   constructor(canvas) {
@@ -16,8 +17,6 @@ export default class {
     this.scene = {};
     this.loading = false;
     this.toolVisible = false;
-    this.bed;
-    this.buildObjects;
     this.toolCursor;
     this.toolCursorMesh;
     this.toolCursorVisible = true;
@@ -26,6 +25,11 @@ export default class {
     this.zTopClipValue;
     this.zBottomClipValue;
     this.cancelHitTimer = 0;
+
+    //objects
+    this.bed;
+    this.buildObjects;
+    this.axes;
 
     this.renderQuality = Number(localStorage.getItem('renderQuality'));
 
@@ -102,10 +106,11 @@ export default class {
       return this.gcodeProcessor.getMaxHeight();
     };
     this.buildObjects.registerClipIgnore = this.registerClipIgnore;
-
     this.bed.buildBed();
-    //Render the corner axis
-    this.registerClipIgnore(this.showWorldAxis(50));
+
+    this.axes = new Axes(this.scene);
+    this.axes.registerClipIgnore = this.registerClipIgnore;
+    this.axes.render(50);
 
     this.resetCamera();
 
@@ -242,39 +247,7 @@ export default class {
       }
     }
   }
-  showWorldAxis(size) {
-    var scene = this.scene;
-    var that = this;
 
-    var makeTextPlane = function(text, color, size) {
-      var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', 50, scene, true);
-      dynamicTexture.hasAlpha = true;
-      dynamicTexture.drawText(text, 5, 40, 'bold 36px Arial', color, 'transparent', true);
-      var plane = BABYLON.Mesh.CreatePlane('TextPlane', size, scene, true);
-      plane.material = new BABYLON.StandardMaterial('TextPlaneMaterial', scene);
-      plane.material.backFaceCulling = false;
-      plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
-      plane.material.diffuseTexture = dynamicTexture;
-      that.registerClipIgnore(plane);
-      return plane;
-    };
-
-    var axisX = BABYLON.Mesh.CreateLines('axisX', [BABYLON.Vector3.Zero(), new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, 0.05 * size, 0), new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)], this.scene);
-    axisX.color = new BABYLON.Color3(1, 0, 0);
-    this.registerClipIgnore(axisX);
-    var xChar = makeTextPlane('X', 'red', size / 10);
-    xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
-    var axisY = BABYLON.Mesh.CreateLines('axisY', [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(-0.05 * size, size * 0.95, 0), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(0.05 * size, size * 0.95, 0)], this.scene);
-    axisY.color = new BABYLON.Color3(0, 1, 0);
-    this.registerClipIgnore(axisY);
-    var yChar = makeTextPlane('Z', 'green', size / 10);
-    yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
-    var axisZ = BABYLON.Mesh.CreateLines('axisZ', [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, -0.05 * size, size * 0.95), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, 0.05 * size, size * 0.95)], this.scene);
-    axisZ.color = new BABYLON.Color3(0, 0, 1);
-    var zChar = makeTextPlane('Y', 'blue', size / 10);
-    this.registerClipIgnore(axisZ);
-    zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
-  }
   getExtruderColors() {
     let colors = localStorage.getItem('extruderColors');
     if (colors === null) {
@@ -329,15 +302,15 @@ export default class {
     for (let idx = this.scene.meshes.length - 1; idx >= 0; idx--) {
       var sceneEntity = this.scene.meshes[idx];
       this.scene.removeMesh(sceneEntity);
-      if (typeof sceneEntity.dispose === 'function') {
+      if (sceneEntity && typeof sceneEntity.dispose === 'function') {
         sceneEntity.dispose(false, true);
       }
     }
 
     this.toolCursor = undefined;
 
-    this.registerClipIgnore(this.bed.buildBed());
-    this.registerClipIgnore(this.showWorldAxis(50));
+    this.bed.buildBed();
+    this.axes.render();
   }
   reload() {
     return new Promise((resolve) => {

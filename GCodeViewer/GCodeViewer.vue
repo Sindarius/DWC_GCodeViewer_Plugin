@@ -83,6 +83,12 @@
                         <v-btn block :value="1">Volume</v-btn>
                      </v-btn-toggle>
                   </v-card>
+                  <v-card>
+                     <v-card-text>
+                        <v-checkbox v-model="showAxes" label="Show Axes"></v-checkbox>
+                        <v-checkbox v-model="showObjectLabels" label="Show Object Labels"></v-checkbox>
+                     </v-card-text>
+                  </v-card>
                </v-expansion-panel-content>
             </v-expansion-panel>
          </v-expansion-panels>
@@ -153,6 +159,8 @@
         },
         hoverLabel: '',
         bedRenderMode: 0,
+        showAxes: true,
+        showObjectLabels: true,
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -196,6 +204,7 @@
               this.hoverLabel = '';
            }
         };
+        this.showObjectLabels = viewer.buildObjects.showLabel;
 
         if (this.move.axes) {
            for (var axesIdx in this.move.axes) {
@@ -211,6 +220,8 @@
 
         viewer.bed.setDelta(this.isDelta);
         this.bedRenderMode = viewer.bed.renderMode;
+
+        this.showAxes = viewer.axes.visible;
 
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
@@ -456,6 +467,12 @@
         isDelta: function (newValue) {
            viewer.bed.setDelta(newValue);
            viewer.resetCamera();
+        },
+        showAxes: function (newValue) {
+           viewer.axes.show(newValue);
+        },
+        showObjectLabels: function (newValue) {
+           viewer.buildObjects.showLabels(newValue);
         },
      },
   };

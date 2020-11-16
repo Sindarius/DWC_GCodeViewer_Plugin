@@ -146,15 +146,6 @@ export default class {
         this.scene.getEngine().setColorWrite(true);
       });
       this.registerClipIgnore(this.bedMesh);
-
-      /*
-      let radius = Math.abs(this.buildVolume.x.max - this.buildVolume.x.min) / 2;
-      this.bedMesh2 = BABYLON.MeshBuilder.CreateDisc('BuildPlate', { radius: radius }, this.scene);
-      this.bedMesh2.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-      this.bedMesh2.material = this.planeMaterial;
-      this.bedMesh2.isPickable = false;
-      this.registerClipIgnore(this.bedMesh2);     
-       */
     } else {
       this.bedMesh = BABYLON.MeshBuilder.CreateBox(
         'bed',

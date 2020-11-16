@@ -119,7 +119,7 @@ export default class {
     plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
     plane.material.diffuseTexture = dynamicTexture;
     plane.billboardMode = 7;
-    //this.registerClipIgnore(plane);
+    this.registerClipIgnore(plane);
     return plane;
   }
   showObjectSelection(visible) {

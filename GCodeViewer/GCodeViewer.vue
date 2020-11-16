@@ -399,7 +399,7 @@
         filePosition: function (newValue) {
            if (this.visualizingCurrentJob) {
               let progressPercent = newValue / this.fileSize;
-              viewer.updatePrintProgress(progressPercent);
+              viewer.gcodeProcessor.updatePercentComplete(progressPercent);
            }
         },
         nthRow: function (newValue) {
@@ -449,7 +449,7 @@
         isJobRunning: function (newValue) {
            if (!newValue) {
               viewer.gcodeProcessor.setLiveTracking(false);
-              viewer.updatePrintProgress(0);
+              viewer.gcodeProcessor.doFinalPass();
            }
         },
         liveZTracking: function (newValue) {
@@ -459,7 +459,7 @@
         },
         selectedFile: function () {
            this.showObjectSelection = false;
-           viewer.updatePrintProgress(0);
+           viewer.gcodeProcessor.updatePercentComplete(0);
         },
         bedRenderMode: function (newValue) {
            viewer.bed.setRenderMode(newValue);

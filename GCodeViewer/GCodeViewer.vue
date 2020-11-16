@@ -62,7 +62,7 @@
                      <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
                   </v-card>
                   <v-card>
-                     <v-card-header>Progress Color</v-card-header>
+                     <v-card-title>Progress Color</v-card-title>
                      <v-card-text>
                         <gcodeviewer-color-picker :editcolor="progressColor" @updatecolor="(value) => updateProgressColor(value)"></gcodeviewer-color-picker>
                      </v-card-text>

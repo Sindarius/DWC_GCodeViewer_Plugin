@@ -99,17 +99,23 @@ export default class {
     });
 
     this.bed = new Bed(this.scene);
-    this.bed.registerClipIgnore = this.registerClipIgnore;
+    this.bed.registerClipIgnore = (mesh) => {
+      this.registerClipIgnore(mesh);
+    };
     this.resetCamera();
     this.buildObjects = new BuildObjects(this.scene);
     this.buildObjects.getMaxHeight = () => {
       return this.gcodeProcessor.getMaxHeight();
     };
-    this.buildObjects.registerClipIgnore = this.registerClipIgnore;
+    this.buildObjects.registerClipIgnore = (mesh) => {
+      this.registerClipIgnore(mesh);
+    };
     this.bed.buildBed();
 
     this.axes = new Axes(this.scene);
-    this.axes.registerClipIgnore = this.registerClipIgnore;
+    this.axes.registerClipIgnore = (mesh) => {
+      this.registerClipIgnore(mesh);
+    };
     this.axes.render(50);
 
     this.resetCamera();
@@ -402,15 +408,14 @@ export default class {
     }
   }
   registerClipIgnore(mesh) {
-    let that = this;
     if (mesh === undefined || mesh === null) return;
-    mesh.onBeforeRenderObservable.add(function() {
-      that.scene.clipPlane = null;
-      that.scene.clipPlane2 = null;
+    mesh.onBeforeRenderObservable.add(() => {
+      this.scene.clipPlane = null;
+      this.scene.clipPlane2 = null;
     });
-    mesh.onAfterRenderObservable.add(function() {
-      that.scene.clipPlane = new BABYLON.Plane(0, 1, 0, that.zTopClipValue);
-      that.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, that.zBottomClipValue);
+    mesh.onAfterRenderObservable.add(() => {
+      this.scene.clipPlane = new BABYLON.Plane(0, 1, 0, this.zTopClipValue);
+      this.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, this.zBottomClipValue);
     });
   }
 }

@@ -38,7 +38,7 @@ export default class {
     this.bedMesh;
     this.isDelta = false;
     this.scene = scene;
-    this.registerClipIgnore;
+    this.registerClipIgnore = () => {};
 
     this.planeMaterial = new BABYLON.StandardMaterial('planeMaterial', this.scene);
     this.planeMaterial.alpha = 1;
@@ -47,6 +47,7 @@ export default class {
 
     this.boxMaterial = new BABYLON.StandardMaterial('bedBoxMaterial', this.scene);
     this.boxMaterial.alpha = 0;
+    this.debug = false;
   }
 
   setRenderMode(renderBedMode) {
@@ -59,6 +60,7 @@ export default class {
     this.buildBed();
   }
   buildBed() {
+    if (this.debug) return;
     if (this.bedMesh && this.bedMesh.isDisposed()) {
       this.bedMesh = null;
     }
@@ -145,6 +147,7 @@ export default class {
       this.bedMesh.onAfterRenderObservable.add(() => {
         this.scene.getEngine().setColorWrite(true);
       });
+
       this.registerClipIgnore(this.bedMesh);
     } else {
       this.bedMesh = BABYLON.MeshBuilder.CreateBox(

@@ -112,14 +112,14 @@ export default class {
   makeTextPlane(text, color, size) {
     var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', { width: text.length * 20, height: 200 }, this.scene, true);
     dynamicTexture.hasAlpha = true;
-    dynamicTexture.drawText(text, null, null, 'bold 24px Arial', color, 'transparent', true);
-    var plane = BABYLON.Mesh.CreatePlane('TextPlane', size, this.scene, true);
+    dynamicTexture.drawText(text, null, null, 'bold 24px Roboto', color, 'transparent', true);
+    var plane = BABYLON.MeshBuilder.CreatePlane('TextPlane', { width: size, height: 10 }, this.scene);
     plane.material = new BABYLON.StandardMaterial('TextPlaneMaterial', this.scene);
     plane.material.backFaceCulling = false;
     plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
     plane.material.diffuseTexture = dynamicTexture;
     plane.billboardMode = 7;
-    this.registerClipIgnore(plane);
+    //this.registerClipIgnore(plane);
     return plane;
   }
   showObjectSelection(visible) {

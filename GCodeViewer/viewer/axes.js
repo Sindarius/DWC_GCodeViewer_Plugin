@@ -14,12 +14,14 @@ export default class {
     this.registerClipIgnore = () => {};
     this.axesMesh;
     this.size = 50;
+    this.debug = false;
   }
 
   show(visible) {
     localStorage.setItem('axesVisible', visible);
-    this.axesMesh.setEnabled(visible);
-    console.log(visible);
+    if (this.axesMesh) {
+      this.axesMesh.setEnabled(visible);
+    }
   }
 
   makeTextPlane(text, color, size) {
@@ -31,7 +33,6 @@ export default class {
     plane.material.backFaceCulling = false;
     plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
     plane.material.diffuseTexture = dynamicTexture;
-    this.registerClipIgnore(plane);
     return plane;
   }
 
@@ -42,6 +43,7 @@ export default class {
   }
 
   render() {
+    if (this.debug) return;
     if (this.axesMesh && !this.axesMesh.isDisposed()) {
       return;
     }

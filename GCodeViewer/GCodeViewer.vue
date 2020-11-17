@@ -25,7 +25,7 @@
                      <v-btn block :value="6" :disabled="loading">Max</v-btn>
                   </v-btn-toggle>
                   <v-checkbox class="mt-4" v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
-                  <v-checkbox v-model="vertexAlpha" label="Wire Vertex Alpha"></v-checkbox>
+                  <v-checkbox v-model="vertexAlpha" label="Alpha Blnding"></v-checkbox>
                   <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
                </v-expansion-panel-content>
             </v-expansion-panel>
@@ -447,6 +447,7 @@
            }
         },
         isJobRunning: function (newValue) {
+           //Need to add a check for paused...
            if (!newValue) {
               viewer.gcodeProcessor.setLiveTracking(false);
               viewer.gcodeProcessor.doFinalPass();

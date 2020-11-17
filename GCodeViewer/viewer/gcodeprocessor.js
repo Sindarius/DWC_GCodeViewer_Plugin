@@ -73,13 +73,9 @@ export default class {
     this.everyNthRow = 0;
     this.currentRowIdx = -1;
     this.currentZ = 0;
-
     this.renderTravels = false;
-
     this.forceWireMode = false;
-
-    this.enableTransparency = false;
-    this.lineVertexAlpha = true;
+    this.lineVertexAlpha = false;
     this.spreadLines = false;
     this.spreadLineAmount = 10;
     this.debug = false;
@@ -330,6 +326,12 @@ export default class {
             this.travels.push(line);
           }
           break;
+        case 'G2':
+        case 'G3':
+          var cw = tokens[0] === 'G2';
+          console.log(`Clockwise move ${cw}`);
+
+          break;
         case 'G28':
           //Home
           this.currentPosition = new BABYLON.Vector3(0, 0, 0);
@@ -505,6 +507,7 @@ export default class {
       let sps = new BABYLON.SolidParticleSystem('gcodemodel' + meshIndex, scene, {
         updatable: true,
         enableMultiMaterial: true,
+        useVertexAlpha: this.lineVertexAlpha,
       });
 
       sps.addShape(box, this.lines.length, {
@@ -514,14 +517,16 @@ export default class {
       sps.buildMesh();
 
       //Build out solid and transparent material.
-      const solidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
+      let solidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
       solidMat.specularColor = this.specularColor;
-      const transparentMat = new BABYLON.StandardMaterial('transparentMaterial', scene);
+      let transparentMat = new BABYLON.StandardMaterial('transparentMaterial', scene);
       transparentMat.specularColor = this.specularColor;
-      transparentMat.alpha = this.materialTransparency;
-      transparentMat.needAlphaTesting = () => true;
-      transparentMat.separateCullingPass = true;
-      transparentMat.backFaceCulling = true;
+      if (this.lineVertexAlpha) {
+        transparentMat.alpha = this.materialTransparency;
+        transparentMat.needAlphaTesting = () => true;
+        transparentMat.separateCullingPass = true;
+        transparentMat.backFaceCulling = true;
+      }
 
       sps.setMultiMaterial([solidMat, transparentMat]);
       sps.setParticles();

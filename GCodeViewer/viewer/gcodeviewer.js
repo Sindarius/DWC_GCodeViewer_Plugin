@@ -378,9 +378,6 @@ export default class {
       this.toolCursor.setAbsolutePosition(new BABYLON.Vector3(x, z, y));
     }
   }
-  updatePrintProgress(printPercent) {
-    this.gcodeProcessor.updatePercentComplete(printPercent);
-  }
   buildtoolCursor() {
     if (this.toolCursor !== undefined) return;
     this.toolCursor = new BABYLON.TransformNode('toolCursor');

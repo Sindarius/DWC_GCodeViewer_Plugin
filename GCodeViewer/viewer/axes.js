@@ -75,5 +75,6 @@ export default class {
     zChar.parent = this.axesMesh;
 
     this.axesMesh.setEnabled(this.visible);
+    this.axesMesh.getChildren().forEach((mesh) => this.registerClipIgnore(mesh));
   }
 }

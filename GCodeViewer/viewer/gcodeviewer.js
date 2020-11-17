@@ -81,8 +81,9 @@ export default class {
     // Add a camera to the scene and attach it to the canvas
     this.orbitCamera = new BABYLON.ArcRotateCamera('Camera', Math.PI / 2, 2.356194, -250, new BABYLON.Vector3(117.5, 0, 117.5), this.scene);
     this.orbitCamera.invertRotation = false;
-    this.flyCamera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, -10), this.scene);
     this.orbitCamera.attachControl(this.canvas, false);
+
+    //this.flyCamera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, -10), this.scene);
     this.scene.activeCamera.panningSensibility = 10;
 
     // Add lights to the scene
@@ -102,7 +103,7 @@ export default class {
     this.bed.registerClipIgnore = (mesh) => {
       this.registerClipIgnore(mesh);
     };
-    this.resetCamera();
+
     this.buildObjects = new BuildObjects(this.scene);
     this.buildObjects.getMaxHeight = () => {
       return this.gcodeProcessor.getMaxHeight();
@@ -117,8 +118,6 @@ export default class {
       this.registerClipIgnore(mesh);
     };
     this.axes.render(50);
-
-    this.resetCamera();
 
     this.scene.onPointerObservable.add((pointerInfo) => {
       let pickInfo = pointerInfo.pickInfo;
@@ -141,6 +140,8 @@ export default class {
         }
       }
     });
+
+    this.resetCamera();
   }
 
   resize() {
@@ -179,11 +180,11 @@ export default class {
     var bedSize = this.bed.getSize();
     (this.scene.activeCamera.alpha = Math.PI / 2), (this.scene.activeCamera.beta = 2.356194);
     if (this.bed.isDelta) {
-      this.scene.activeCamera.radius = -bedCenter.x;
+      this.scene.activeCamera.radius = bedCenter.x;
       this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
       this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x, bedSize.z, -bedSize.x);
     } else {
-      this.scene.activeCamera.radius = -250;
+      this.scene.activeCamera.radius = 250;
       this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
       this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x / 2, bedSize.z, -bedSize.y / 2);
     }

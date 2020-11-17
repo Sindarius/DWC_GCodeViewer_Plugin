@@ -103,7 +103,7 @@ export default class {
 
       //generate a label
 
-      var textPlane = this.makeTextPlane(cancelObject.name, 'yellow', 20);
+      var textPlane = this.makeTextPlane(cancelObject.name, cancelObject.cancelled ? 'yellow' : 'white', 20);
       textPlane.position = new BABYLON.Vector3(0, this.getMaxHeight() / 2 + 10, 0);
       textPlane.isPickable = false;
       textPlane.metadata = cancelObject;
@@ -122,6 +122,7 @@ export default class {
       .attr('width', 800)
       .attr('height', 200)
       .attr('fill', 'none');
+
     svg
       .append('text')
       .attr('x', 400)
@@ -131,8 +132,9 @@ export default class {
       .attr('text-anchor', 'middle')
       .attr('alignment-baseline', 'middle')
       .attr('fill', 'black')
-      .attr('stroke', 'white')
+      .attr('stroke', color)
       .attr('stroke-width', 2)
+      .attr('text-rendering', 'optimizeLegibility')
       .text(text);
 
     var html = svg
@@ -148,7 +150,7 @@ export default class {
     var url = window.URL.createObjectURL(blob);
     this.labelSVGS.push(url);
 
-    let plane = BABYLON.MeshBuilder.CreatePlane('TextPlane', { width: size, height: 10 }, this.scene);
+    let plane = BABYLON.MeshBuilder.CreatePlane('TextPlane', { width: size, height: 8 }, this.scene);
     plane.material = new BABYLON.StandardMaterial('TextPlaneMaterial', this.scene);
     plane.material.backFaceCulling = false;
     plane.material.specularColor = new BABYLON.Color3(0, 0, 0);

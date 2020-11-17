@@ -25,7 +25,8 @@
                      <v-btn block :value="6" :disabled="loading">Max</v-btn>
                   </v-btn-toggle>
                   <v-checkbox class="mt-4" v-model="forceWireMode" label="Force Line Rendering"></v-checkbox>
-                  <v-checkbox v-model="vertexAlpha" label="Alpha Blnding"></v-checkbox>
+                  <v-checkbox v-model="vertexAlpha" label="Transparency"></v-checkbox>
+                  <v-checkbox v-model="liveTrackingShowSolid" :disabled="!isJobRunning || loading || !visualizingCurrentJob" label="Show Solid (Current Job)"></v-checkbox>
                   <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
                </v-expansion-panel-content>
             </v-expansion-panel>
@@ -161,6 +162,7 @@
         bedRenderMode: 0,
         showAxes: true,
         showObjectLabels: true,
+        liveTrackingShowSolid: false,
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -398,8 +400,7 @@
         },
         filePosition: function (newValue) {
            if (this.visualizingCurrentJob) {
-              let progressPercent = newValue / this.fileSize;
-              viewer.gcodeProcessor.updatePercentComplete(progressPercent);
+              viewer.gcodeProcessor.updateFilePosition(newValue);
            }
         },
         nthRow: function (newValue) {
@@ -460,7 +461,7 @@
         },
         selectedFile: function () {
            this.showObjectSelection = false;
-           viewer.gcodeProcessor.updatePercentComplete(0);
+           viewer.gcodeProcessor.updateFilePosition(0);
         },
         bedRenderMode: function (newValue) {
            viewer.bed.setRenderMode(newValue);
@@ -474,6 +475,14 @@
         },
         showObjectLabels: function (newValue) {
            viewer.buildObjects.showLabels(newValue);
+        },
+        liveTrackingShowSolid: function (newValue) {
+           viewer.gcodeProcessor.liveTrackingShowSolid = newValue;
+           this.reloadviewer();
+        },
+        forceWireMode: function (newValue) {
+           viewer.gcodeProcessor.forceWireMode = newValue;
+           this.reloadviewer();
         },
      },
   };

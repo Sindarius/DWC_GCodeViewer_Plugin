@@ -17,7 +17,6 @@ export default class {
     this.currentColor = new BABYLON.Color4(0.25, 0.25, 0.25, 1);
     this.renderVersion = RenderMode.Line;
     this.absolute = true; //Track if we are in relative or absolute mode.
-
     this.lines = [];
     this.travels = [];
     this.sps;
@@ -25,7 +24,6 @@ export default class {
     this.lineCount = 0;
     this.renderMode = '';
     this.extruderCount = 5;
-
     this.layerDictionary = {};
 
     //We'll look at the last 2 layer heights for now to determine layer height.
@@ -33,10 +31,12 @@ export default class {
     this.currentLayerHeight = 0;
 
     //Live Rendering
-    this.liveTracking = false;
+    this.liveTracking = false; //Tracks if we loaded the current job to enable live rendering
+    this.liveTrackingShowSolid = false; //Flag if we want to continue showing the whole model while rendering
+
     this.materialTransparency = 0.5;
     this.gcodeLineIndex = [];
-    this.gcodeLineNumber = 0;
+    this.gcodeFilePosition = 0;
 
     this.refreshTime = 200;
     this.timeStamp;
@@ -76,11 +76,14 @@ export default class {
     this.renderTravels = false;
     this.forceWireMode = false;
     this.lineVertexAlpha = false;
+
     this.spreadLines = false;
     this.spreadLineAmount = 10;
     this.debug = false;
     this.specularColor = new BABYLON.Color4(0.1, 0.1, 0.1, 0.1);
     this.chunkLoadedCallback = () => {}; //use this to fire update events based on file load progress.
+
+    this.lookAheadLength = 500;
   }
 
   setExtruderColors(colors) {
@@ -216,8 +219,8 @@ export default class {
     if (file === undefined || file === null || file.length === 0) {
       return;
     }
-    var lines = file.split(/\r\n|\n/);
 
+    var lines = file.split('\n'); //file.split(/\r\n|\n/);
     //Get an opportunity to free memory before we strt generating 3d model
     if (typeof clearCache === 'function') {
       clearCache();
@@ -230,14 +233,14 @@ export default class {
     this.currentColor = this.extruderColors[0].clone();
 
     lines.reverse();
-    let lineNo = 0;
+    let filePosition = 0; //going to make this file position
     this.timeStamp = Date.now();
     while (lines.length) {
-      lineNo++;
       var line = lines.pop();
+      filePosition += line.length + 1;
       line.trim();
       if (!line.startsWith(';')) {
-        await this.processLine(line, lineNo);
+        await this.processLine(line, filePosition);
       }
       if (Date.now() - this.timeStamp > 100) {
         await this.pauseProcessing();
@@ -330,7 +333,6 @@ export default class {
         case 'G3':
           var cw = tokens[0] === 'G2';
           console.log(`Clockwise move ${cw}`);
-
           break;
         case 'G28':
           //Home
@@ -382,203 +384,243 @@ export default class {
     }
   }
 
-  createScene(scene) {
+  renderLineMode(scene) {
     let that = this;
     let lastUpdate = Date.now();
-    let meshIndex = this.lineMeshIndex;
     let runComplete = false;
+    let meshIndex = this.lineMeshIndex;
     this.gcodeLineIndex.push(new Array());
 
-    if (this.renderVersion === RenderMode.Line) {
-      this.renderMode = 'Line Rendering';
+    this.renderMode = 'Line Rendering';
+    //Extrusion
+    let lineArray = [];
+    let colorArray = [];
+    if (this.debug) {
+      console.log(this.lines[0]);
+    }
+    for (var lineIdx = 0; lineIdx < this.lines.length; lineIdx++) {
+      let line = this.lines[lineIdx];
+      this.gcodeLineIndex[meshIndex].push(line.gcodeLineNumber);
+      let data = line.getPoints(scene);
 
-      //Extrusion
-      let lineArray = [];
-      let colorArray = [];
-      if (this.debug) {
-        console.log(this.lines[0]);
+      if (this.liveTrackingShowSolid) {
+        data.colors[0].a = this.lineVertexAlpha ? this.materialTransparency : 1;
+        data.colors[1].a = this.lineVertexAlpha ? this.materialTransparency : 1;
+      } else if (this.liveTracking) {
+        data.colors[0].a = 0;
+        data.colors[1].a = 0;
+      } else if (this.lineVertexAlpha) {
+        data.colors[0].a = this.materialTransparency;
+        data.colors[1].a = this.materialTransparency;
+      } else {
+        data.colors[0].a = 1;
+        data.colors[1].a = 1;
       }
-      for (var lineIdx = 0; lineIdx < this.lines.length; lineIdx++) {
-        let line = this.lines[lineIdx];
-        this.gcodeLineIndex[meshIndex].push(line.gcodeLineNumber);
-        let data = line.getPoints(scene);
-        if (this.lineVertexAlpha) {
-          data.colors[0].a = 0.5;
-          data.colors[1].a = 0.5;
-        } else {
-          data.colors[0].a = 1;
-          data.colors[1].a = 1;
-        }
-        lineArray.push(data.points);
-        colorArray.push(data.colors);
-      }
+      lineArray.push(data.points);
+      colorArray.push(data.colors);
+    }
 
-      let lineMesh = BABYLON.MeshBuilder.CreateLineSystem(
-        'm ' + this.lineMeshIndex,
-        {
-          lines: lineArray,
-          colors: colorArray,
-          updatable: true,
-          useVertexAlpha: this.lineVertexAlpha,
-        },
-        scene
-      );
+    let lineMesh = BABYLON.MeshBuilder.CreateLineSystem(
+      'm ' + this.lineMeshIndex,
+      {
+        lines: lineArray,
+        colors: colorArray,
+        updatable: true,
+        useVertexAlpha: this.lineVertexAlpha || this.liveTracking,
+      },
+      scene
+    );
 
-      lineArray = null;
-      colorArray = null;
+    lineArray = null;
+    colorArray = null;
 
-      lineMesh.isVisible = true;
-      lineMesh.alphaIndex = 0; // this.lineMeshIndex; //Testing
-      lineMesh.doNotSyncBoundingInfo = true;
-      lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
-      lineMesh.freezeNormals();
-      lineMesh.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.ColorKind);
+    lineMesh.isVisible = true;
+    lineMesh.alphaIndex = 0; // this.lineMeshIndex; //Testing
+    lineMesh.doNotSyncBoundingInfo = true;
+    lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
+    lineMesh.freezeNormals();
+    lineMesh.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.ColorKind);
 
-      const lineSolidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
-      lineSolidMat.specularColor = this.specularColor;
-      lineSolidMat.alphaMode = BABYLON.Engine.ALPHA_ONEONE;
-      lineSolidMat.needAlphaTesting = () => true;
-      lineMesh.material = lineSolidMat;
+    const lineSolidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
+    lineSolidMat.specularColor = this.specularColor;
+    lineSolidMat.alphaMode = BABYLON.Engine.ALPHA_ONEONE;
+    lineSolidMat.needAlphaTesting = () => true;
+    lineMesh.material = lineSolidMat;
 
-      let lastRendered = 0;
+    let lastRendered = 0;
 
-      let beforeRenderFunc = function() {
-        if (that.liveTracking && !runComplete && (that.gcodeLineNumber === 0 || lastRendered >= that.gcodeLineIndex[meshIndex].length - 1)) {
+    let beforeRenderFunc = function() {
+      if (that.liveTracking && !runComplete && (that.gcodeFilePosition === 0 || lastRendered >= that.gcodeLineIndex[meshIndex].length - 1)) {
+        return;
+      } else if (Date.now() - lastUpdate < that.refreshTime) {
+        return;
+      } else {
+        lastUpdate = Date.now();
+
+        var colorData = lineMesh.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+
+        if (colorData === null || colorData === undefined) {
+          console.log('Failed to Load Color VBO');
           return;
-        } else if (Date.now() - lastUpdate < that.refreshTime) {
+        }
+
+        let renderTo = -1;
+        let renderAhead = -1;
+        for (var renderToIdx = lastRendered; renderToIdx < that.gcodeLineIndex[meshIndex].length; renderToIdx++) {
+          if (that.gcodeLineIndex[meshIndex][renderToIdx] <= that.gcodeFilePosition) {
+            renderTo = renderToIdx;
+          }
+          if (that.gcodeLineIndex[meshIndex][renderToIdx] <= that.gcodeFilePosition + that.lookAheadLength) {
+            renderAhead = renderToIdx;
+          }
+        }
+
+        for (let colorIdx = lastRendered; colorIdx < renderTo; colorIdx++) {
+          let index = colorIdx * 8;
+          colorData[index] = that.progressColor.r;
+          colorData[index + 1] = that.progressColor.g;
+          colorData[index + 2] = that.progressColor.b;
+          colorData[index + 3] = that.progressColor.a;
+          colorData[index + 4] = that.progressColor.r;
+          colorData[index + 5] = that.progressColor.g;
+          colorData[index + 6] = that.progressColor.b;
+          colorData[index + 7] = that.progressColor.a;
+        }
+
+        //render ahead
+        for (let renderAheadIdx = renderTo; renderAheadIdx < renderAhead; renderAheadIdx++) {
+          let index = renderAheadIdx * 8;
+          colorData[index + 3] = 1;
+          colorData[index + 7] = 1;
+        }
+
+        lastRendered = renderTo;
+        lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
+        if (that.gcodeFilePosition === Number.MAX_VALUE) {
+          runComplete = true;
+        }
+      }
+    };
+
+    this.renderFuncs.push(beforeRenderFunc);
+    scene.registerBeforeRender(beforeRenderFunc);
+  }
+
+  renderBlockMode(scene) {
+    let that = this;
+    let lastUpdate = Date.now();
+    let runComplete = false;
+    let meshIndex = this.lineMeshIndex;
+    this.gcodeLineIndex.push(new Array());
+
+    var layerHeight = Math.floor((this.currentLayerHeight - this.previousLayerHeight) * 100) / 100;
+
+    if (this.spreadLines) {
+      layerHeight /= this.spreadLineAmount;
+    }
+
+    this.renderMode = 'Mesh Rendering';
+    var box = BABYLON.MeshBuilder.CreateBox('box', { width: 1, height: layerHeight, depth: layerHeight * 1.2 }, scene);
+
+    let l = this.lines;
+
+    this.gcodeLineIndex.push(new Array());
+
+    let particleBuilder = function(particle, i, s) {
+      l[s].renderLineV3(particle, that.lineVertexAlpha || (that.liveTracking && !that.liveTrackingShowSolid));
+      that.gcodeLineIndex[meshIndex].push(particle.props.gcodeLineNumber);
+    };
+
+    let sps = new BABYLON.SolidParticleSystem('gcodemodel' + meshIndex, scene, {
+      updatable: true,
+      enableMultiMaterial: true,
+      useVertexAlpha: this.lineVertexAlpha || this.liveTracking,
+    });
+
+    sps.addShape(box, this.lines.length, {
+      positionFunction: particleBuilder,
+    });
+
+    sps.buildMesh();
+
+    //Build out solid and transparent material.
+    let solidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
+    solidMat.specularColor = this.specularColor;
+    let transparentMat = new BABYLON.StandardMaterial('transparentMaterial', scene);
+    transparentMat.specularColor = this.specularColor;
+    if (this.lineVertexAlpha || this.liveTracking) {
+      transparentMat.alpha = this.liveTracking && !this.liveTrackingShowSolid ? 0 : this.materialTransparency;
+      transparentMat.needAlphaTesting = () => true;
+      transparentMat.separateCullingPass = true;
+      transparentMat.backFaceCulling = true;
+    }
+
+    sps.setMultiMaterial([solidMat, transparentMat]);
+    sps.setParticles();
+    sps.computeSubMeshes();
+    sps.mesh.alphaIndex = 0; // this.lineMeshIndex; //meshIndex;
+    sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
+    sps.mesh.freezeNormals();
+    sps.mesh.doNotSyncBoundingInfo = true;
+
+    sps.updateParticle = function(particle) {
+      if (that.gcodeLineIndex[meshIndex][particle.idx] < that.gcodeFilePosition) {
+        particle.color = that.progressColor;
+        particle.materialIndex = 0;
+      } else if (that.gcodeLineIndex[meshIndex][particle.idx] < that.gcodeFilePosition + that.lookAheadLength) {
+        particle.color = new BABYLON.Color4(particle.color.r, particle.color.g, particle.color.b, 1);
+        particle.materialIndex = 0;
+      } else {
+        particle.color = new BABYLON.Color4(particle.color.r, particle.color.g, particle.color.b, 0);
+      }
+    };
+
+    let beforeRenderFunc = function() {
+      if (that.liveTracking && !runComplete) {
+        if (Date.now() - lastUpdate < that.refreshTime) {
           return;
         } else {
           lastUpdate = Date.now();
-
-          var colorData = lineMesh.getVerticesData(BABYLON.VertexBuffer.ColorKind);
-
-          if (colorData === null || colorData === undefined) {
-            console.log('Fail');
-            return;
-          }
-
-          let renderTo = -1;
-          for (var renderToIdx = lastRendered; renderToIdx < that.gcodeLineIndex[meshIndex].length; renderToIdx++) {
-            if (that.gcodeLineIndex[meshIndex][renderToIdx] <= that.gcodeLineNumber) {
-              renderTo = renderToIdx;
-            }
-          }
-
-          for (var colorIdx = lastRendered; colorIdx < renderTo; colorIdx++) {
-            let index = colorIdx * 8;
-            colorData[index] = that.progressColor.r;
-            colorData[index + 1] = that.progressColor.g;
-            colorData[index + 2] = that.progressColor.b;
-            colorData[index + 3] = that.progressColor.a;
-            colorData[index + 4] = that.progressColor.r;
-            colorData[index + 5] = that.progressColor.g;
-            colorData[index + 6] = that.progressColor.b;
-            colorData[index + 7] = that.progressColor.a;
-          }
-          lastRendered = renderTo;
-          lineMesh.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colorData, true);
-          if (that.gcodeLineNumber === Number.MAX_VALUE) {
-            runComplete = true;
-          }
+          sps.setParticles();
+          sps.computeSubMeshes();
         }
-      };
+        if (that.gcodeFilePosition === Number.MAX_VALUE) {
+          runComplete = true;
+        }
+      }
+    };
 
-      this.renderFuncs.push(beforeRenderFunc);
-      scene.registerBeforeRender(beforeRenderFunc);
+    this.renderFuncs.push(beforeRenderFunc);
+    scene.registerBeforeRender(beforeRenderFunc);
+    this.scene.clearCachedVertexData();
+  }
+
+  renderPointMode(scene) {
+    let meshIndex = this.lineMeshIndex;
+    this.gcodeLineIndex.push(new Array());
+    //point cloud
+    this.sps = new BABYLON.PointsCloudSystem('pcs' + meshIndex, 1, scene);
+
+    let l = this.lines;
+
+    let particleBuilder = function(particle, i, s) {
+      l[s].renderParticle(particle);
+    };
+
+    this.sps.addPoints(this.lines.length, particleBuilder);
+
+    this.sps.buildMeshAsync().then((mesh) => {
+      mesh.material.pointSize = 2;
+    });
+  }
+
+  createScene(scene) {
+    if (this.renderVersion === RenderMode.Line) {
+      this.renderLineMode(scene);
     } else if (this.renderVersion === RenderMode.Block) {
-      var layerHeight = Math.floor((this.currentLayerHeight - this.previousLayerHeight) * 100) / 100;
-
-      if (this.spreadLines) {
-        layerHeight /= this.spreadLineAmount;
-      }
-
-      this.renderMode = 'Mesh Rendering';
-      var box = BABYLON.MeshBuilder.CreateBox('box', { width: 1, height: layerHeight, depth: layerHeight * 1.2 }, scene);
-
-      let l = this.lines;
-
-      this.gcodeLineIndex.push(new Array());
-
-      let particleBuilder = function(particle, i, s) {
-        l[s].renderLineV3(particle);
-        that.gcodeLineIndex[meshIndex].push(particle.props.gcodeLineNumber);
-      };
-
-      let sps = new BABYLON.SolidParticleSystem('gcodemodel' + meshIndex, scene, {
-        updatable: true,
-        enableMultiMaterial: true,
-        useVertexAlpha: this.lineVertexAlpha,
-      });
-
-      sps.addShape(box, this.lines.length, {
-        positionFunction: particleBuilder,
-      });
-
-      sps.buildMesh();
-
-      //Build out solid and transparent material.
-      let solidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
-      solidMat.specularColor = this.specularColor;
-      let transparentMat = new BABYLON.StandardMaterial('transparentMaterial', scene);
-      transparentMat.specularColor = this.specularColor;
-      if (this.lineVertexAlpha) {
-        transparentMat.alpha = this.materialTransparency;
-        transparentMat.needAlphaTesting = () => true;
-        transparentMat.separateCullingPass = true;
-        transparentMat.backFaceCulling = true;
-      }
-
-      sps.setMultiMaterial([solidMat, transparentMat]);
-      sps.setParticles();
-      sps.computeSubMeshes();
-      sps.mesh.alphaIndex = 0; // this.lineMeshIndex; //meshIndex;
-      sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
-      sps.mesh.freezeNormals();
-      sps.mesh.doNotSyncBoundingInfo = true;
-
-      sps.updateParticle = function(particle) {
-        if (that.gcodeLineIndex[meshIndex][particle.idx] < that.gcodeLineNumber) {
-          particle.color = that.progressColor;
-          particle.materialIndex = 0;
-        } else {
-          particle.color = new BABYLON.Color4(particle.color.r, particle.color.g, particle.color.b, 0.5);
-          particle.materialIndex = 1;
-        }
-      };
-
-      let beforeRenderFunc = function() {
-        if (that.liveTracking && !runComplete) {
-          if (Date.now() - lastUpdate < that.refreshTime) {
-            return;
-          } else {
-            lastUpdate = Date.now();
-            sps.setParticles();
-            sps.computeSubMeshes();
-          }
-          if (that.gcodeLineNumber === Number.MAX_VALUE) {
-            runComplete = true;
-          }
-        }
-      };
-
-      this.renderFuncs.push(beforeRenderFunc);
-      scene.registerBeforeRender(beforeRenderFunc);
-      this.scene.clearCachedVertexData();
+      this.renderBlockMode(scene);
     } else if (this.renderVersion === RenderMode.Point) {
-      //point cloud
-      this.sps = new BABYLON.PointsCloudSystem('pcs' + meshIndex, 1, scene);
-
-      let l = this.lines;
-
-      let particleBuilder = function(particle, i, s) {
-        l[s].renderParticle(particle);
-      };
-
-      this.sps.addPoints(this.lines.length, particleBuilder);
-
-      this.sps.buildMeshAsync().then((mesh) => {
-        mesh.material.pointSize = 2;
-      });
+      this.renderPointMode(scene);
     }
 
     if (this.renderTravels) {
@@ -613,17 +655,16 @@ export default class {
     );
     travelMesh.isVisible = false;
   }
-
-  updatePercentComplete(percentComplete) {
+  updateFilePosition(filePosition) {
     if (this.liveTracking) {
-      this.gcodeLineNumber = Math.floor(this.lineCount * percentComplete);
+      this.gcodeFilePosition = filePosition - 1;
     } else {
-      this.gcodeLineNumber = 0;
+      this.gcodeFilePosition = 0;
     }
   }
   doFinalPass() {
     this.liveTracking = true;
-    this.gcodeLineNumber = Number.MAX_VALUE;
+    this.gcodeFilePosition = Number.MAX_VALUE;
     setTimeout(() => {
       this.liveTracking = false;
     }, this.refreshTime + 200);

@@ -45,7 +45,7 @@ export default class {
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  renderLineV3(p) {
+  renderLineV3(p, invisible) {
     let length = this.distanceVector(this.start, this.end);
     let rot2 = Math.atan2(this.end.z - this.start.z, this.end.x - this.start.x);
     p.scaling.x = length;
@@ -54,8 +54,14 @@ export default class {
     p.position.x = this.start.x + (length / 2) * Math.cos(rot2);
     p.position.y = this.start.y;
     p.position.z = this.start.z + (length / 2) * Math.sin(rot2);
-    p.color = this.color;
-    p.materialIndex = 0;
+    if (invisible) {
+      p.color = new BABYLON.Color4(this.color.r, this.color.g, this.color.b, 0);
+      p.materialIndex = 1;
+    } else {
+      p.color = this.color;
+      p.materialIndex = 0;
+    }
+
     p.props = {
       gcodeLineNumber: this.gcodeLineNumber,
       originalColor: this.color,

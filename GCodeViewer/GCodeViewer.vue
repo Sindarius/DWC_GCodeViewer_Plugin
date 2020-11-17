@@ -78,7 +78,7 @@
                   </v-card>
                   <v-card>
                      <v-card-title>Bed Render Mode</v-card-title>
-                     <v-btn-toggle v-model="bedRenderMode">
+                     <v-btn-toggle v-model="bedRenderMode" class="d-flex flex-column">
                         <v-btn block :value="0">Bed</v-btn>
                         <v-btn block :value="1">Volume</v-btn>
                      </v-btn-toggle>

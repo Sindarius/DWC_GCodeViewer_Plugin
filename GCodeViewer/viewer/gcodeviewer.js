@@ -82,9 +82,12 @@ export default class {
     this.orbitCamera = new BABYLON.ArcRotateCamera('Camera', Math.PI / 2, 2.356194, -250, new BABYLON.Vector3(117.5, 0, 117.5), this.scene);
     this.orbitCamera.invertRotation = false;
     this.orbitCamera.attachControl(this.canvas, false);
+    this.orbitCamera.inputs.attached.keyboard.zoomingSensibility = 1;
+    this.orbitCamera.inputs.attached.keyboard.panningSensibility = 1;
 
     //this.flyCamera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, -10), this.scene);
     this.scene.activeCamera.panningSensibility = 10;
+    this.scene.activeCamera.zoomingSensibility = 1;
 
     // Add lights to the scene
     //var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), this.scene);

@@ -1,5 +1,6 @@
 'use strict';
 import * as BABYLON from 'babylonjs';
+import * as d3 from 'd3';
 
 export default class {
   constructor(scene) {
@@ -110,14 +111,46 @@ export default class {
     }
   }
   makeTextPlane(text, color, size) {
+    /*
     var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', { width: text.length * 20, height: 200 }, this.scene, true);
     dynamicTexture.hasAlpha = true;
-    dynamicTexture.drawText(text, null, null, 'bold 24px Roboto', color, 'transparent', true);
-    var plane = BABYLON.MeshBuilder.CreatePlane('TextPlane', { width: size, height: 10 }, this.scene);
+    dynamicTexture.drawText(text, null, null, 'bold 24px Roboto', color, 'transparent', true);*/
+    var svg = d3
+      .create('svg')
+      .attr('width', 800)
+      .attr('height', 200)
+      .attr('fill', 'none');
+    svg
+      .append('text')
+      .attr('x', 400)
+      .attr('y', 100)
+      .attr('font-family', 'Verdana')
+      .attr('font-size', '50px')
+      .attr('text-anchor', 'middle')
+      .attr('alignment-baseline', 'middle')
+      .attr('fill', 'black')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2)
+      .text(text);
+
+    var html = svg
+      .attr('title', 'test2')
+      .attr('version', 1.1)
+      .attr('xmlns', 'http://www.w3.org/2000/svg')
+      .node(); //.parentNode.innerHTML;
+
+    var doctype = '<?xml version="1.0" standalone="no"?>' + '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
+
+    var source = new XMLSerializer().serializeToString(html);
+    var blob = new Blob([doctype + source], { type: 'image/svg+xml' });
+    var url = window.URL.createObjectURL(blob);
+
+    let plane = BABYLON.MeshBuilder.CreatePlane('TextPlane', { width: size, height: 10 }, this.scene);
     plane.material = new BABYLON.StandardMaterial('TextPlaneMaterial', this.scene);
     plane.material.backFaceCulling = false;
     plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
-    plane.material.diffuseTexture = dynamicTexture;
+    plane.material.diffuseTexture = new BABYLON.Texture(url, this.scene); //dynamicTexture;
+    plane.material.diffuseTexture.hasAlpha = true;
     plane.billboardMode = 7;
     this.registerClipIgnore(plane);
     return plane;

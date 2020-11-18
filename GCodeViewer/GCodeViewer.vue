@@ -188,7 +188,7 @@
         },
         jobSelectionLabel() {
            if (!(this.canCancelObject && this.job.build.objects)) {
-              return 'Show Object Selction';
+              return 'Show Object Selection';
            } else {
               return 'Show Object Selection(' + this.job.build.objects.length + ')';
            }

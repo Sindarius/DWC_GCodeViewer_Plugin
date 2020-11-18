@@ -54,11 +54,10 @@ export default class {
     p.position.x = this.start.x + (length / 2) * Math.cos(rot2);
     p.position.y = this.start.y;
     p.position.z = this.start.z + (length / 2) * Math.sin(rot2);
+    p.color = this.color;
     if (invisible) {
-      p.color = new BABYLON.Color4(this.color.r, this.color.g, this.color.b, 0);
       p.materialIndex = 1;
     } else {
-      p.color = this.color;
       p.materialIndex = 0;
     }
 

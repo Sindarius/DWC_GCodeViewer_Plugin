@@ -394,9 +394,6 @@ export default class {
     this.toolCursorMesh.isVisible = this.toolCursorVisible;
     this.registerClipIgnore(this.toolCursorMesh);
   }
-  setLiveTracking(enabled) {
-    this.gcodeProcessor.setLiveTracking(enabled);
-  }
   updateRenderQuality(renderQuality) {
     this.renderQuality = renderQuality;
     if (localStorage) {

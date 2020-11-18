@@ -122,7 +122,6 @@
 
 <script>
   'use strict';
-  //<v-row> <v-col>{{ move }}</v-col></v-row>
 
   import gcodeViewer from './viewer/gcodeviewer.js';
   import { mapActions, mapState } from 'vuex';

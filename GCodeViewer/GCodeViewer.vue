@@ -341,6 +341,13 @@
         this.$nextTick(() => {
            viewer.saveExtruderColors(this.extruderColors);
         });
+
+        window.addEventListener('keyup', (e) => {
+           var key = e.key || e.keyCode;
+           if (key === 'Escape' || key === 'Esc' || key === 27) {
+              this.fullscreen = false;
+           }
+        });
      },
      beforeDestroy() {
         this.$root.$off('view-3d-model', this.viewModelEvent);

@@ -1,3 +1,82 @@
+
+<style scoped>
+  .control-panel {
+     overflow-y: auto;
+  }
+
+  .babylon-canvas {
+     width: 100%;
+     min-height: 300px;
+     height: 100%;
+  }
+
+  .btn-toggle {
+     flex-direction: column;
+  }
+
+  .controls {
+     position: absolute;
+     overflow-y: auto;
+     overflow-x: hidden;
+     top: 0;
+     left: 0;
+     bottom: 0;
+     width: 20%;
+     height: 100%;
+  }
+
+  .primary-container {
+     position: relative;
+     width: 100%;
+     height: 70vh;
+  }
+
+  .v-input--checkbox {
+     margin: 0;
+     padding: 0;
+  }
+
+  .v-input--switch {
+     margin: 0;
+     padding: 0;
+  }
+  .viewer-box {
+     position: absolute;
+     top: 0;
+     right: 0;
+     width: 80%;
+     height: 100%;
+  }
+
+  .full-screen {
+     position: fixed;
+     top: 0;
+     left: 0;
+     bottom: 0;
+     right: 0;
+     z-index: 99999;
+  }
+
+  .full-screen-icon {
+     position: absolute;
+     top: 5px;
+     left: 5px;
+     height: 40px;
+     width: 40px;
+     z-index: auto;
+  }
+
+  .restore-screen-icon {
+     position: fixed;
+     top: 5px;
+     left: 5px;
+     height: 40px;
+     width: 40px;
+     z-index: 999999;
+  }
+</style>
+
+
 <template>
    <div class="primary-container" v-resize="resize">
       <div class="controls pr-2 ma-0">
@@ -59,7 +138,6 @@
                      <v-slider min="0.1" :max="maxHeight" v-model="sliderHeight" thumb-label thumb-size="24" step="0.1"></v-slider>
                      <div>Bottom Clipping</div>
                      <v-slider min="0.1" :max="maxHeight" v-model="sliderBottomHeight" thumb-label thumb-size="24" step="0.1"></v-slider>
-
                      <v-checkbox v-model="liveZTracking" label="Live Z Tracking"></v-checkbox>
                   </v-card>
                   <v-card>
@@ -95,7 +173,10 @@
          </v-expansion-panels>
       </div>
       <div class="viewer-box">
-         <canvas ref="viewerCanvas" class="babylon-canvas" :title="hoverLabel" />
+         <canvas :class="{ 'full-screen': fullscreen }" ref="viewerCanvas" class="babylon-canvas" :title="hoverLabel" />
+         <v-btn small :class="{ 'full-screen-icon': !fullscreen, 'restore-screen-icon': fullscreen }" @click="fullscreen = !fullscreen"
+            ><v-icon> {{ fullscreen ? 'mdi-window-restore' : 'mdi-window-maximize' }} </v-icon></v-btn
+         >
       </div>
 
       <v-dialog v-model="objectDialogData.showDialog" max-width="300">
@@ -119,6 +200,8 @@
       </v-dialog>
    </div>
 </template>
+
+
 
 <script>
   'use strict';
@@ -162,6 +245,7 @@
         showAxes: true,
         showObjectLabels: true,
         liveTrackingShowSolid: false,
+        fullscreen: false,
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -487,52 +571,7 @@
   };
 </script>
 
-<style scoped>
-  .control-panel {
-     overflow-y: auto;
-  }
 
-  .babylon-canvas {
-     position: relative;
-     width: 100%;
-     min-height: 300px;
-     height: 100%;
-  }
-
-  .btn-toggle {
-     flex-direction: column;
-  }
-
-  .controls {
-     position: absolute;
-     overflow-y: auto;
-     overflow-x: hidden;
-     top: 0;
-     left: 0;
-     width: 20%;
-     height: 100%;
-  }
-  .viewer-box {
-     position: absolute;
-     top: 0;
-     right: 0;
-     width: 80%;
-     height: 100%;
-  }
-
-  .primary-container {
-     position: relative;
-     width: 100%;
-     height: 70vh;
-  }
-
-  .v-input--checkbox {
-     margin: 0;
-     padding: 0;
-  }
-
-  .v-input--switch {
-     margin: 0;
-     padding: 0;
-  }
-</style>
+         <!-- v-row v-for="(m, index) in move.axes" :key="index">
+            <v-col :cols="12 / move.length"> {{ m.letter }} {{ m.machinePosition }} {{ m.userPosition }} </v-col>
+         </v-row-->

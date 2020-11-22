@@ -54,7 +54,7 @@
      left: 0;
      bottom: 0;
      right: 0;
-     z-index: 99999;
+     z-index: 10;
   }
 
   .full-screen-icon {
@@ -174,7 +174,7 @@
       </div>
       <div class="viewer-box">
          <canvas :class="{ 'full-screen': fullscreen }" ref="viewerCanvas" class="babylon-canvas" :title="hoverLabel" />
-         <v-btn small :class="{ 'full-screen-icon': !fullscreen, 'restore-screen-icon': fullscreen }" @click="fullscreen = !fullscreen"
+         <v-btn small :class="{ 'full-screen-icon': !fullscreen, 'restore-screen-icon': fullscreen }" @click="toggleFullScreen"
             ><v-icon> {{ fullscreen ? 'mdi-window-restore' : 'mdi-window-maximize' }} </v-icon></v-btn
          >
       </div>
@@ -461,6 +461,12 @@
            this.loading = true;
            reader.readAsText(e.target.files[0]);
            e.target.value = '';
+        },
+        toggleFullScreen() {
+           this.fullscreen = !this.fullscreen;
+           this.$nextTick().then(() => {
+              viewer.resize();
+           });
         },
      },
      watch: {

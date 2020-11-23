@@ -107,15 +107,6 @@
                   <v-checkbox v-model="vertexAlpha" label="Transparency"></v-checkbox>
                   <v-checkbox v-model="liveTrackingShowSolid" :disabled="!isJobRunning || loading || !visualizingCurrentJob" label="Show Solid (Current Job)"></v-checkbox>
                   <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
-
-                  <h4>Color Mode</h4>
-                  <v-btn-toggle block exclusive v-model="colorMode" class="btn-toggle d-flex">
-                     <v-btn block :value="0" :disabled="loading">Color</v-btn>
-                     <v-btn block :value="1" :disabled="loading">Feed</v-btn>
-                  </v-btn-toggle>
-                  <h4>Max Feed Rate (mm/s)</h4>
-                  <slider v-model="maxFeedRate" :min="30" :max="500"></slider>
-                  <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
@@ -136,6 +127,27 @@
                   </v-card>
                   <v-card>
                      <v-btn block class="mt-4" @click="resetExtruderColors" color="warning">Reset Extruder Colors</v-btn>
+                  </v-card>
+               </v-expansion-panel-content>
+            </v-expansion-panel>
+            <v-expansion-panel>
+               <v-expansion-panel-header><v-icon class="mr-2">mdi-palette</v-icon><strong>Color</strong></v-expansion-panel-header>
+               <v-expansion-panel-content>
+                  <v-card>
+                     <h4>Color Mode</h4>
+                     <v-btn-toggle block exclusive v-model="colorMode" class="btn-toggle d-flex">
+                        <v-btn block :value="0" :disabled="loading">Color</v-btn>
+                        <v-btn block :value="1" :disabled="loading">Feed</v-btn>
+                     </v-btn-toggle>
+                     <h4>Min Feed Rate (mm/s)</h4>
+                     <slider v-model="minColorRate" :min="30" :max="500"></slider>
+                     <h4>Max Feed Rate (mm/s) {{ displayMaxFileFeedRate() }}</h4>
+                     <slider v-model="maxColorRate" :min="30" :max="500"></slider>
+                     <h4>Min</h4>
+                     <gcodeviewer-color-picker :editcolor="minFeedColor" @updatecolor="(value) => updateMinFeedColor(value)"></gcodeviewer-color-picker>
+                     <h4>Max</h4>
+                     <gcodeviewer-color-picker :editcolor="maxFeedColor" @updatecolor="(value) => updateMaxFeedColor(value)"></gcodeviewer-color-picker>
+                     <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
                   </v-card>
                </v-expansion-panel-content>
             </v-expansion-panel>
@@ -258,7 +270,11 @@
         fullscreen: false,
         bedColor: '',
         colorMode: 0,
-        maxFeedRate: 60,
+        minColorRate: 20,
+        maxColorRate: 60,
+        maxFileFeedRate: 0,
+        minFeedColor: '#0000FF',
+        maxFeedColor: '#FF0000',
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -322,6 +338,10 @@
         this.showAxes = viewer.axes.visible;
 
         this.colorMode = viewer.gcodeProcessor.colorMode;
+        this.minFeedColor = viewer.gcodeProcessor.minFeedColorString;
+        this.maxFeedColor = viewer.gcodeProcessor.maxFeedColorString;
+        this.minColorRate = viewer.gcodeProcessor.minColorRate / 60;
+        this.maxColorRate = viewer.gcodeProcessor.maxColorRate / 60;
 
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
@@ -346,6 +366,7 @@
               viewer.gcodeProcessor.setLiveTracking(this.visualizingCurrentJob);
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
+              this.maxFileFeedRate = viewer.gcodeProcessor.maxFeedRate;
            } finally {
               this.loading = false;
            }
@@ -384,6 +405,12 @@
            this.progressColor = value;
            viewer.setProgressColor(value);
         },
+        updateMinFeedColor(value) {
+           viewer.gcodeProcessor.updateMinFeedColor(value);
+        },
+        updateMaxFeedColor(value) {
+           viewer.gcodeProcessor.updateMaxFeedColor(value);
+        },
         updateBedColor(value) {
            this.bedColor = value;
            viewer.bed.setBedColor(value);
@@ -418,6 +445,7 @@
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
            } finally {
+              this.maxFileFeedRate = viewer.gcodeProcessor.maxFeedRate;
               viewer.buildObjects.loadObjectBoundaries(this.job.build.objects); //file is loaded lets load the final heights
               this.loading = false;
            }
@@ -441,6 +469,7 @@
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
               this.sliderBottomHeight = 0;
+              this.maxFileFeedRate = viewer.gcodeProcessor.maxFeedRate;
               try {
                  viewer.buildObjects.loadObjectBoundaries(this.job.build.objects);
               } catch {
@@ -476,6 +505,7 @@
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
               this.loading = false;
+              this.maxFileFeedRate = viewer.gcodeProcessor.maxFeedRate;
            });
            this.loading = true;
            reader.readAsText(e.target.files[0]);
@@ -486,6 +516,9 @@
            this.$nextTick().then(() => {
               viewer.resize();
            });
+        },
+        displayMaxFileFeedRate() {
+           if (this.maxFileFeedRate > 0) return `(${this.maxFileFeedRate / 60})`;
         },
      },
      watch: {
@@ -603,8 +636,11 @@
            viewer.gcodeProcessor.setColorMode(to);
            this.reloadviewer();
         },
-        maxFeedRate: function (to) {
-           viewer.gcodeProcessor.maxFeedRate = to * 60;
+        minColorRate: function (to) {
+           viewer.gcodeProcessor.updateColorRate(to * 60, this.maxColorRate * 60);
+        },
+        maxColorRate: function (to) {
+           viewer.gcodeProcessor.updateColorRate(this.minColorRate * 60, to * 60);
         },
      },
   };

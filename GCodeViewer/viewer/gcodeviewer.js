@@ -33,7 +33,6 @@ export default class {
     this.axes;
 
     this.renderQuality = Number(localStorage.getItem('renderQuality'));
-
     if (this.renderQuality === undefined || this.renderQuality === null) {
       this.renderQuality = 1;
     }

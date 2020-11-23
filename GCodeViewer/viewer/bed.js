@@ -66,7 +66,6 @@ export default class {
     if (this.bedMesh) {
       this.scene.removeMesh(this.bedMesh);
       this.bedMesh.dispose(false, true);
-      console.log('dispose');
     }
     this.buildBed();
   }

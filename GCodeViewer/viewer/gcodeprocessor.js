@@ -72,13 +72,38 @@ export default class {
     this.feedValues = 0;
     this.numChanges = 0;
     this.avgFeed = 0;
+    this.maxFeedRate = 0;
+    this.minFeedRate = Number.MAX_VALUE;
     this.underspeedPercent = 1;
 
     this.colorMode = Number.parseInt(localStorage.getItem('processorColorMode'));
     if (!this.colorMode) {
       this.setColorMode(ColorMode.Color);
     }
-    this.maxFeedRate = 60 * 60; //12000; // 200mm/s as a cap atm
+
+    this.minColorRate = Number.parseInt(localStorage.getItem('minColorRate'));
+    if (!this.minColorRate) {
+      this.minColorRate = 1200;
+      localStorage.setItem('minColorRate', this.minColorRate);
+    }
+
+    this.maxColorRate = Number.parseInt(localStorage.getItem('maxColorRate'));
+    if (!this.maxColorRate) {
+      this.maxColorRate = 3600;
+      localStorage.setItem('maxColorRate', this.maxColorRate);
+    }
+
+    this.minFeedColorString = localStorage.getItem('minFeedColor');
+    if (!this.minFeedColorString) {
+      this.minFeedColorString = '#0000FFFF';
+    }
+    this.minFeedColor = BABYLON.Color4.FromHexString(this.minFeedColorString);
+
+    this.maxFeedColorString = localStorage.getItem('maxFeedColor');
+    if (!this.maxFeedColorString) {
+      this.maxFeedColorString = '#FF0000FF';
+    }
+    this.maxFeedColor = BABYLON.Color4.FromHexString(this.maxFeedColorString);
 
     //render every nth row
     this.everyNthRow = 0;
@@ -222,6 +247,8 @@ export default class {
     this.lastExtrudedZHeight = 0;
     this.previousLayerHeight = 0;
     this.currentLayerHeight = 0;
+    this.minFeedRate = Number.MAX_VALUE;
+    this.maxFeedRate = 0;
 
     if (renderQuality === undefined || renderQuality === null) {
       renderQuality = 4;
@@ -304,12 +331,22 @@ export default class {
                 break;
               case 'F':
                 this.currentFeedRate = Number(token.substring(1));
+                if (this.currentFeedRate > this.maxFeedRate) {
+                  this.maxFeedRate = this.currentFeedRate;
+                }
+                if (this.currentFeedRate < this.minFeedRate) {
+                  this.minFeedRate = this.currentFeedRate;
+                }
+
                 if (this.colorMode === ColorMode.Feed) {
-                  let ratio = this.currentFeedRate / this.maxFeedRate;
-                  if (ratio > 1) {
-                    ratio = 1;
+                  let ratio = (this.currentFeedRate - this.minColorRate) / (this.maxColorRate - this.minColorRate);
+                  if (ratio >= 1) {
+                    this.currentColor = this.maxFeedColor;
+                  } else if (ratio <= 0) {
+                    this.currentColor = this.minFeedColor;
+                  } else {
+                    this.currentColor = BABYLON.Color4.Lerp(this.maxFeedColor, this.minFeedColor, ratio);
                   }
-                  this.currentColor = new BABYLON.Color4(ratio, 0, 1 - ratio, 0.1);
                 }
 
                 break;
@@ -711,6 +748,24 @@ export default class {
   setColorMode(mode) {
     localStorage.setItem('processorColorMode', mode);
     this.colorMode = mode;
+  }
+  updateMinFeedColor(value) {
+    localStorage.setItem('minFeedColor', value);
+    this.minFeedColorString = value;
+    this.minFeedColor = BABYLON.Color4.FromHexString(value);
+  }
+  updateMaxFeedColor(value) {
+    localStorage.setItem('maxFeedColor', value);
+    this.maxFeedColorString = value;
+    this.maxFeedColor = BABYLON.Color4.FromHexString(value);
+  }
+
+  updateColorRate(min, max) {
+    localStorage.setItem('minColorRate', min);
+    localStorage.setItem('maxColorRate', max);
+    console.log(`${min} ${max}`);
+    this.minColorRate = min;
+    this.maxColorRate = max;
   }
 }
 

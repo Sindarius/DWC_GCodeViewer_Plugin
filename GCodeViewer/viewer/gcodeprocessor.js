@@ -345,7 +345,7 @@ export default class {
                   } else if (ratio <= 0) {
                     this.currentColor = this.minFeedColor;
                   } else {
-                    this.currentColor = BABYLON.Color4.Lerp(this.maxFeedColor, this.minFeedColor, ratio);
+                    this.currentColor = BABYLON.Color4.Lerp(this.minFeedColor, this.maxFeedColor, ratio);
                   }
                 }
 
@@ -763,7 +763,6 @@ export default class {
   updateColorRate(min, max) {
     localStorage.setItem('minColorRate', min);
     localStorage.setItem('maxColorRate', max);
-    console.log(`${min} ${max}`);
     this.minColorRate = min;
     this.maxColorRate = max;
   }

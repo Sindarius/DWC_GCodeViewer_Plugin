@@ -140,9 +140,9 @@
                         <v-btn block :value="1" :disabled="loading">Feed</v-btn>
                      </v-btn-toggle>
                      <h4>Min Feed Rate (mm/s)</h4>
-                     <slider v-model="minColorRate" :min="30" :max="500"></slider>
+                     <slider v-model="minColorRate" :min="5" :max="500"></slider>
                      <h4>Max Feed Rate (mm/s) {{ displayMaxFileFeedRate() }}</h4>
-                     <slider v-model="maxColorRate" :min="30" :max="500"></slider>
+                     <slider v-model="maxColorRate" :min="5" :max="500"></slider>
                      <h4>Min</h4>
                      <gcodeviewer-color-picker :editcolor="minFeedColor" @updatecolor="(value) => updateMinFeedColor(value)"></gcodeviewer-color-picker>
                      <h4>Max</h4>

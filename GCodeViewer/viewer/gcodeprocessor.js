@@ -11,6 +11,11 @@ export const RenderMode = {
   Max: 4,
 };
 
+export const ColorMode = {
+  Color: 0,
+  Feed: 1,
+};
+
 export default class {
   constructor() {
     this.currentPosition = new BABYLON.Vector3(0, 0, 0);
@@ -68,6 +73,12 @@ export default class {
     this.numChanges = 0;
     this.avgFeed = 0;
     this.underspeedPercent = 1;
+
+    this.colorMode = Number.parseInt(localStorage.getItem('processorColorMode'));
+    if (!this.colorMode) {
+      this.setColorMode(ColorMode.Color);
+    }
+    this.maxFeedRate = 60 * 60; //12000; // 200mm/s as a cap atm
 
     //render every nth row
     this.everyNthRow = 0;
@@ -293,6 +304,14 @@ export default class {
                 break;
               case 'F':
                 this.currentFeedRate = Number(token.substring(1));
+                if (this.colorMode === ColorMode.Feed) {
+                  let ratio = this.currentFeedRate / this.maxFeedRate;
+                  if (ratio > 1) {
+                    ratio = 1;
+                  }
+                  this.currentColor = new BABYLON.Color4(ratio, 0, 1 - ratio, 0.1);
+                }
+
                 break;
             }
           }
@@ -348,6 +367,7 @@ export default class {
           //this resets positioning, typically for extruder, probably won't need
           break;
         case 'M567': {
+          if (this.colorMode === this.colorMode.color) break;
           for (let tokenIdx = 1; tokenIdx < tokens.length; tokenIdx++) {
             let token = tokens[tokenIdx];
             var finalColors = [1, 1, 1];
@@ -367,7 +387,7 @@ export default class {
         }
       }
     } else {
-      if (tokenString.startsWith('T')) {
+      if (tokenString.startsWith('T') && !this.colorMode !== ColorMode.color) {
         var extruder = Number(tokenString.substring(1)) % this.extruderCount; //For now map to extruders 0 - 4
         if (extruder < 0) extruder = 0; // Cover the case where someone sets a tool to a -1 value
         this.currentColor = this.extruderColors[extruder].clone();
@@ -443,6 +463,7 @@ export default class {
 
     const lineSolidMat = new BABYLON.StandardMaterial('solidMaterial', scene);
     lineSolidMat.specularColor = this.specularColor;
+    lineSolidMat.diffuseColor = new BABYLON.Color4(1, 1, 1, 0.5);
     lineSolidMat.alphaMode = BABYLON.Engine.ALPHA_ONEONE;
     lineSolidMat.needAlphaTesting = () => true;
     lineMesh.material = lineSolidMat;
@@ -685,6 +706,11 @@ export default class {
   }
   setLiveTracking(enabled) {
     this.liveTracking = enabled;
+  }
+
+  setColorMode(mode) {
+    localStorage.setItem('processorColorMode', mode);
+    this.colorMode = mode;
   }
 }
 

@@ -1,6 +1,8 @@
 'use strict';
 
 import * as BABYLON from 'babylonjs';
+import { GridMaterial } from 'babylonjs-materials';
+
 import { Color4 } from 'babylonjs';
 
 export const RenderBedMode = {
@@ -39,12 +41,20 @@ export default class {
     this.isDelta = false;
     this.scene = scene;
     this.registerClipIgnore = () => {};
+    this.bedLineColor = '#0000FF';
 
+    /*
     this.planeMaterial = new BABYLON.StandardMaterial('planeMaterial', this.scene);
     this.planeMaterial.alpha = 1;
     this.planeMaterial.diffuseColor = new BABYLON.Color3(0.25, 0.25, 0.25);
     this.planeMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+    */
 
+    if (!this.getBedColor()) {
+      this.setBedColor('#0000FF');
+    }
+
+    this.planeMaterial = this.buildGridMaterial();
     this.boxMaterial = new BABYLON.StandardMaterial('bedBoxMaterial', this.scene);
     this.boxMaterial.alpha = 0;
     this.debug = false;
@@ -55,7 +65,8 @@ export default class {
     localStorage.setItem('renderBedMode', this.renderMode);
     if (this.bedMesh) {
       this.scene.removeMesh(this.bedMesh);
-      this.bedMesh.dispose(true);
+      this.bedMesh.dispose(false, true);
+      console.log('dispose');
     }
     this.buildBed();
   }
@@ -179,5 +190,30 @@ export default class {
   commitBedSize() {
     localStorage.setItem('buildVolume', JSON.stringify(this.buildVolume));
     this.setRenderMode(this.renderMode);
+  }
+  buildGridMaterial() {
+    let gridMaterial = new GridMaterial('bedMaterial', this.scene);
+    gridMaterial.mainColor = new BABYLON.Color4(0, 0, 0, 0);
+    gridMaterial.lineColor = BABYLON.Color3.FromHexString(this.getBedColor());
+    gridMaterial.gridRatio = 5;
+    gridMaterial.opacity = 0.8;
+    gridMaterial.majorUnitFrequency = 10;
+    gridMaterial.minorUnitVisibility = 0.6;
+    gridMaterial.gridOffset = new BABYLON.Vector3(0, 0, 0);
+    return gridMaterial;
+  }
+  getBedColor() {
+    return localStorage.getItem('bedLineColor');
+  }
+  setBedColor(color) {
+    localStorage.setItem('bedLineColor', color);
+    if (this.planeMaterial) {
+      this.planeMaterial = this.buildGridMaterial();
+      this.dispose();
+      this.buildBed();
+    }
+  }
+  dispose() {
+    this.bedMesh.dispose(false, true);
   }
 }

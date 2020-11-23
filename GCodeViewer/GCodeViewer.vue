@@ -107,6 +107,15 @@
                   <v-checkbox v-model="vertexAlpha" label="Transparency"></v-checkbox>
                   <v-checkbox v-model="liveTrackingShowSolid" :disabled="!isJobRunning || loading || !visualizingCurrentJob" label="Show Solid (Current Job)"></v-checkbox>
                   <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
+
+                  <h4>Color Mode</h4>
+                  <v-btn-toggle block exclusive v-model="colorMode" class="btn-toggle d-flex">
+                     <v-btn block :value="0" :disabled="loading">Color</v-btn>
+                     <v-btn block :value="1" :disabled="loading">Feed</v-btn>
+                  </v-btn-toggle>
+                  <h4>Max Feed Rate (mm/s)</h4>
+                  <slider v-model="maxFeedRate" :min="30" :max="500"></slider>
+                  <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
                </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel>
@@ -161,6 +170,7 @@
                         <v-btn block :value="0">Bed</v-btn>
                         <v-btn block :value="1">Volume</v-btn>
                      </v-btn-toggle>
+                     <gcodeviewer-color-picker :editcolor="bedColor" @updatecolor="(value) => updateBedColor(value)"></gcodeviewer-color-picker>
                   </v-card>
                   <v-card>
                      <v-card-text>
@@ -246,6 +256,9 @@
         showObjectLabels: true,
         liveTrackingShowSolid: false,
         fullscreen: false,
+        bedColor: '',
+        colorMode: 0,
+        maxFeedRate: 60,
      }),
      computed: {
         ...mapState('machine/model', ['job', 'move', 'state']),
@@ -305,8 +318,10 @@
 
         viewer.bed.setDelta(this.isDelta);
         this.bedRenderMode = viewer.bed.renderMode;
-
+        this.bedColor = viewer.bed.getBedColor();
         this.showAxes = viewer.axes.visible;
+
+        this.colorMode = viewer.gcodeProcessor.colorMode;
 
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
@@ -368,6 +383,10 @@
         updateProgressColor(value) {
            this.progressColor = value;
            viewer.setProgressColor(value);
+        },
+        updateBedColor(value) {
+           this.bedColor = value;
+           viewer.bed.setBedColor(value);
         },
         resize() {
            if (Object.keys(viewer).length !== 0) {
@@ -579,6 +598,13 @@
         forceWireMode: function (newValue) {
            viewer.gcodeProcessor.forceWireMode = newValue;
            this.reloadviewer();
+        },
+        colorMode: function (to) {
+           viewer.gcodeProcessor.setColorMode(to);
+           this.reloadviewer();
+        },
+        maxFeedRate: function (to) {
+           viewer.gcodeProcessor.maxFeedRate = to * 60;
         },
      },
   };

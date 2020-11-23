@@ -1,6 +1,7 @@
 'use strict';
 
 import * as BABYLON from 'babylonjs';
+import 'babylonjs-materials';
 import gcodeProcessor from './gcodeprocessor.js';
 import Bed from './bed.js';
 import BuildObjects from './buildobjects.js';
@@ -91,6 +92,7 @@ export default class {
     //this.flyCamera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, -10), this.scene);
 
     // Add lights to the scene
+
     //var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), this.scene);
     var light2 = new BABYLON.PointLight('light2', new BABYLON.Vector3(0, 1, -1), this.scene);
     light2.diffuse = new BABYLON.Color3(1, 1, 1);

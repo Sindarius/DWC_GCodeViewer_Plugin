@@ -22,6 +22,8 @@ export default class {
     this.getMaxHeight;
     this.alphaLevel = 0.5;
 
+    this.observableControls = null;
+
     this.showLabel = localStorage.getItem('showObjectLabels');
     if (this.showLabel === null) {
       this.showLabel = true;
@@ -160,9 +162,47 @@ export default class {
     this.registerClipIgnore(plane);
     return plane;
   }
+
+  buildObservables() {
+    this.observableControls = this.scene.onPointerObservable.add((pointerInfo) => {
+      let pickInfo = pointerInfo.pickInfo;
+      switch (pointerInfo.type) {
+        case BABYLON.PointerEventTypes.POINTERDOWN:
+          {
+            this.cancelHitTimer = Date.now();
+          }
+          break;
+        case BABYLON.PointerEventTypes.POINTERUP:
+          {
+            if (Date.now() - this.cancelHitTimer > 200) {
+              return;
+            }
+            this.handleClick(pickInfo);
+          }
+          break;
+        case BABYLON.PointerEventTypes.POINTERMOVE: {
+          this.handlePointerMove(pickInfo);
+        }
+      }
+    });
+  }
+
+  clearObservables() {
+    if (this.observableControls) {
+      this.scene.onPointerObservable.remove(this.observableControls);
+      this.observableControls = null;
+    }
+  }
+
   showObjectSelection(visible) {
     this.showCancelObjects = visible;
     this.buildObjectMeshes.forEach((mesh) => mesh.setEnabled(visible));
+
+    if (visible) {
+      this.buildObservables();
+    } else {
+      this.clearObservables();
+    }
   }
   setObjectTexture(mesh) {
     if (mesh.metadata.cancelled) {
@@ -172,11 +212,13 @@ export default class {
     }
   }
   handleClick(pickInfo) {
+    if (!this.showCancelObjects) return;
     if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes('OBJECTMESH') && this.objectCallback) {
       this.objectCallback(pickInfo.pickedMesh.metadata);
     }
   }
   handlePointerMove(pickInfo) {
+    if (!this.showCancelObjects) return;
     this.buildObjectMeshes.forEach((mesh) => this.setObjectTexture(mesh));
     if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes('OBJECTMESH')) {
       pickInfo.pickedMesh.material = pickInfo.pickedMesh.metadata.cancelled ? this.cancelledHighlightMaterial : this.highlightMaterial;

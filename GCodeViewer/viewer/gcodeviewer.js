@@ -129,11 +129,13 @@ export default class {
       switch (pointerInfo.type) {
         case BABYLON.PointerEventTypes.POINTERDOWN:
           {
+            if (!this.buildObjects.showCancelObjects) return;
             this.cancelHitTimer = Date.now();
           }
           break;
         case BABYLON.PointerEventTypes.POINTERUP:
           {
+            if (!this.buildObjects.showCancelObjects) return;
             if (Date.now() - this.cancelHitTimer > 200) {
               return;
             }
@@ -141,6 +143,7 @@ export default class {
           }
           break;
         case BABYLON.PointerEventTypes.POINTERMOVE: {
+          if (!this.buildObjects.showCancelObjects) return;
           this.buildObjects.handlePointerMove(pickInfo);
         }
       }
@@ -186,11 +189,11 @@ export default class {
     (this.scene.activeCamera.alpha = Math.PI / 2), (this.scene.activeCamera.beta = 2.356194);
     if (this.bed.isDelta) {
       this.scene.activeCamera.radius = bedCenter.x;
-      this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
+      this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, -2, bedCenter.y);
       this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x, bedSize.z, -bedSize.x);
     } else {
       this.scene.activeCamera.radius = 250;
-      this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, 0, bedCenter.y);
+      this.scene.activeCamera.target = new BABYLON.Vector3(bedCenter.x, -2, bedCenter.y);
       this.scene.activeCamera.position = new BABYLON.Vector3(-bedSize.x / 2, bedSize.z, -bedSize.y / 2);
     }
   }

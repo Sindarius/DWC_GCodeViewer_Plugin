@@ -280,7 +280,7 @@ export default class {
       if (!line.startsWith(';')) {
         await this.processLine(line, filePosition);
       }
-      if (Date.now() - this.timeStamp > 100) {
+      if (Date.now() - this.timeStamp > 10) {
         await this.pauseProcessing();
       }
     }

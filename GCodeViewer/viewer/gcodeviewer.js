@@ -124,31 +124,6 @@ export default class {
     };
     this.axes.render(50);
 
-    this.scene.onPointerObservable.add((pointerInfo) => {
-      let pickInfo = pointerInfo.pickInfo;
-      switch (pointerInfo.type) {
-        case BABYLON.PointerEventTypes.POINTERDOWN:
-          {
-            if (!this.buildObjects.showCancelObjects) return;
-            this.cancelHitTimer = Date.now();
-          }
-          break;
-        case BABYLON.PointerEventTypes.POINTERUP:
-          {
-            if (!this.buildObjects.showCancelObjects) return;
-            if (Date.now() - this.cancelHitTimer > 200) {
-              return;
-            }
-            this.buildObjects.handleClick(pickInfo);
-          }
-          break;
-        case BABYLON.PointerEventTypes.POINTERMOVE: {
-          if (!this.buildObjects.showCancelObjects) return;
-          this.buildObjects.handlePointerMove(pickInfo);
-        }
-      }
-    });
-
     this.resetCamera();
   }
 

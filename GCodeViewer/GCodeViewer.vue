@@ -76,9 +76,10 @@
          <canvas ref="viewerCanvas" class="babylon-canvas" :title="hoverLabel"> </canvas>
          <div class="button-container" :class="{'button-container-drawer' : drawer}" >
             <v-btn class="full-screen-icon mb-2" small  @click="toggleFullScreen"><v-icon> {{ fullscreen ? 'mdi-window-restore' : 'mdi-window-maximize' }} </v-icon></v-btn><br>
-            <v-btn small class="toggle-menu-button-close" @click="drawer = !drawer"><v-icon> {{ fullscreen ? 'mdi-cog' : 'mdi-cog' }} </v-icon></v-btn>
+            <v-btn small class="toggle-menu-button-close mb-10" @click="drawer = !drawer"><v-icon> mdi-cog </v-icon></v-btn> <br>
+            <v-btn small class="toggle-menu-button-close" v-show="loading" @click="cancelLoad" title="Cancel File Loading"><v-icon color="red"> mdi-cancel </v-icon></v-btn>
          </div>
-         <v-navigation-drawer v-model="drawer" absolute width="350px">
+         <v-navigation-drawer  v-model="drawer" :permanent="drawer" absolute width="350px">
             <v-card>
                <v-btn @click="reset" block><v-icon class="mr-2">mdi-camera</v-icon> Reset Camera</v-btn>
                <v-btn class="mt-2" @click="reloadviewer" :disabled="loading" block><v-icon class="mr-2">mdi-reload-alert</v-icon>Reload View</v-btn>
@@ -521,6 +522,9 @@
         },
         displayMaxFileFeedRate() {
            if (this.maxFileFeedRate > 0) return `(${this.maxFileFeedRate / 60})`;
+        },
+        cancelLoad() {
+           viewer.gcodeProcessor.cancelLoad = true;
         },
      },
      watch: {

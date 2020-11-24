@@ -120,6 +120,7 @@ export default class {
     this.chunkLoadedCallback = () => {}; //use this to fire update events based on file load progress.
 
     this.lookAheadLength = 500;
+    this.cancelLoad = false;
   }
 
   setExtruderColors(colors) {
@@ -168,6 +169,7 @@ export default class {
           this.refreshTime = 30000;
           maxLines = 25000;
           maxNRow = 50;
+          this.renderTravels = false;
         }
         break;
       //Low Quality
@@ -177,6 +179,7 @@ export default class {
           this.refreshTime = 30000;
           maxLines = 500000;
           maxNRow = 10;
+          this.renderTravels = false;
         }
         break;
       //Medium Quality
@@ -240,6 +243,7 @@ export default class {
   }
 
   async processGcodeFile(file, renderQuality, clearCache) {
+    this.cancelLoad = false;
     this.currentZ = 0;
     this.currentRowIdx = -1;
     this.gcodeLineIndex = [];
@@ -274,6 +278,10 @@ export default class {
     let filePosition = 0; //going to make this file position
     this.timeStamp = Date.now();
     while (lines.length) {
+      if (this.cancelLoad) {
+        this.cancelLoad = false;
+        return;
+      }
       var line = lines.pop();
       filePosition += line.length + 1;
       line.trim();
@@ -285,7 +293,7 @@ export default class {
       }
     }
 
-    file = {}; //Clear1 out the file.
+    file = {}; //Clear out the file.
   }
 
   pauseProcessing() {

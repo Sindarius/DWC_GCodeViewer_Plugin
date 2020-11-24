@@ -492,6 +492,7 @@ export default class {
     colorArray = null;
 
     lineMesh.isVisible = true;
+    lineMesh.isPickable = false;
     lineMesh.alphaIndex = 0; // this.lineMeshIndex; //Testing
     lineMesh.doNotSyncBoundingInfo = true;
     lineMesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
@@ -619,6 +620,7 @@ export default class {
     sps.mesh.alphaIndex = 0; // this.lineMeshIndex; //meshIndex;
     sps.mesh.freezeWorldMatrix(); // prevents from re-computing the World Matrix each frame
     sps.mesh.freezeNormals();
+    sps.mesh.isPickable = false;
     sps.mesh.doNotSyncBoundingInfo = true;
 
     sps.updateParticle = function(particle) {

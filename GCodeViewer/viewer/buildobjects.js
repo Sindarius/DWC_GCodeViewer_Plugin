@@ -164,6 +164,10 @@ export default class {
   }
 
   buildObservables() {
+    if (this.observableControls) {
+      return;
+    }
+
     this.observableControls = this.scene.onPointerObservable.add((pointerInfo) => {
       let pickInfo = pointerInfo.pickInfo;
       switch (pointerInfo.type) {

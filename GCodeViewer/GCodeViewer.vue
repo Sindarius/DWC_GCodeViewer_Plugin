@@ -67,12 +67,18 @@
   .button-container-drawer {
      left: 355px;
   }
+  .emergency-button-placement {
+     position: absolute;
+     top: 14px;
+     right: 16px;
+     z-index: 999;
+  }
 </style>
 
 <template>
    <div ref="primarycontainer" id="primarycontainer" class="primary-container mt-2" v-resize="resize">
       <div :class="{ 'full-screen': fullscreen }" class="viewer-box">
-
+            <emergency-btn v-show="fullscreen" class="emergency-button-placement"  ></emergency-btn>
          <canvas ref="viewerCanvas" class="babylon-canvas" :title="hoverLabel"> </canvas>
          <div class="button-container" :class="{'button-container-drawer' : drawer}" >
             <v-btn class="full-screen-icon mb-2" small  @click="toggleFullScreen"><v-icon> {{ fullscreen ? 'mdi-window-restore' : 'mdi-window-maximize' }} </v-icon></v-btn><br>
@@ -411,6 +417,7 @@
            viewer.setProgressColor(value);
         },
         updateMinFeedColor(value) {
+           console.log(value);
            viewer.gcodeProcessor.updateMinFeedColor(value);
         },
         updateMaxFeedColor(value) {

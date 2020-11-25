@@ -54,7 +54,6 @@
               this.color = '#' + val;
            }
            this.color = this.color.toUpperCase().padEnd(7, '0').substring(0, 7);
-           console.log(this.color);
            this.$emit('updatecolor', this.color);
         },
      },

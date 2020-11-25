@@ -768,12 +768,13 @@ export default class {
   updateMinFeedColor(value) {
     localStorage.setItem('minFeedColor', value);
     this.minFeedColorString = value;
-    this.minFeedColor = BABYLON.Color4.FromHexString(value);
+    this.minFeedColor = BABYLON.Color4.FromHexString(value.padEnd(9, 'F'));
   }
   updateMaxFeedColor(value) {
     localStorage.setItem('maxFeedColor', value);
     this.maxFeedColorString = value;
-    this.maxFeedColor = BABYLON.Color4.FromHexString(value);
+
+    this.maxFeedColor = BABYLON.Color4.FromHexString(value.padEnd(9, 'F'));
   }
 
   updateColorRate(min, max) {

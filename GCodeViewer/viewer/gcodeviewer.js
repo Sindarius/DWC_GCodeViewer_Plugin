@@ -259,7 +259,7 @@ export default class {
   getProgressColor() {
     let progressColor = localStorage.getItem('progressColor');
     if (progressColor === null) {
-      progressColor = '#FFFFFFFF';
+      progressColor = '#FFFFFF';
     }
     return progressColor;
   }

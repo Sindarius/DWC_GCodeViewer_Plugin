@@ -352,12 +352,14 @@
         this.progressColor = viewer.getProgressColor();
         this.viewModelEvent = async (path) => {
            this.selectedFile = path;
-           this.loading = true;
-           let blob = await this.machineDownload({
-              filename: Path.combine(path),
-              type: 'text',
-           });
+
            try {
+              let blob = await this.machineDownload({
+                 filename: Path.combine(path),
+                 type: 'text',
+              });
+              this.loading = true;
+
               await viewer.processFile(blob);
               viewer.gcodeProcessor.setLiveTracking(this.visualizingCurrentJob);
               this.maxHeight = viewer.getMaxHeight();
@@ -430,8 +432,6 @@
            }
         },
         async loadRunningJob() {
-           this.loading = true;
-
            if (this.selectedFile != this.job.file.fileName) {
               this.selectedFile = '';
               viewer.gcodeProcessor.setLiveTracking(false);
@@ -439,19 +439,21 @@
            }
            this.selectedFile = this.job.file.fileName;
 
-           let blob = await this.machineDownload({
-              filename: this.job.file.fileName,
-              type: 'text',
-           });
            try {
+              let blob = await this.machineDownload({
+                 filename: this.job.file.fileName,
+                 type: 'text',
+              });
+
+              this.loading = true;
               viewer.gcodeProcessor.setLiveTracking(true);
               viewer.gcodeProcessor.updateForceWireMode(this.forceWireMode);
               await viewer.processFile(blob);
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
-           } finally {
               this.maxFileFeedRate = viewer.gcodeProcessor.maxFeedRate;
               viewer.buildObjects.loadObjectBoundaries(this.job.build.objects); //file is loaded lets load the final heights
+           } finally {
               this.loading = false;
            }
         },
@@ -529,7 +531,6 @@
            viewer.gcodeProcessor.cancelLoad = true;
         },
         scrollIntoView(event) {
-           console.log(event.target);
            setTimeout(() => {
               event.target.scrollIntoView(true);
            }, 250);

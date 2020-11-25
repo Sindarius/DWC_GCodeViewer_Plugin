@@ -92,7 +92,7 @@
                <!--v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox-->
             </v-card>
             <v-expansion-panels>
-               <v-expansion-panel>
+               <v-expansion-panel @click="scrollIntoView">
                   <v-expansion-panel-header><v-icon class="mr-2">mdi-checkerboard</v-icon><strong>Render Quality</strong></v-expansion-panel-header>
                   <v-expansion-panel-content eager>
                      <v-btn-toggle block exclusive v-model="renderQuality" class="btn-toggle d-flex">
@@ -109,7 +109,7 @@
                      <v-checkbox v-model="spreadLines" label="Spread Lines"></v-checkbox>
                   </v-expansion-panel-content>
                </v-expansion-panel>
-               <v-expansion-panel>
+               <v-expansion-panel @click="scrollIntoView">
                   <v-expansion-panel-header><v-icon class="mr-2">mdi-printer-3d-nozzle</v-icon><strong>Extruders</strong></v-expansion-panel-header>
                   <v-expansion-panel-content>
                      <v-btn class="mb-2" @click="reloadviewer" :disabled="loading" block color="primary">Reload View</v-btn>
@@ -130,7 +130,7 @@
                      </v-card>
                   </v-expansion-panel-content>
                </v-expansion-panel>
-               <v-expansion-panel>
+               <v-expansion-panel @click="scrollIntoView">
                   <v-expansion-panel-header><v-icon class="mr-2">mdi-palette</v-icon><strong>Color</strong></v-expansion-panel-header>
                   <v-expansion-panel-content>
                      <v-card>
@@ -151,7 +151,7 @@
                      </v-card>
                   </v-expansion-panel-content>
                </v-expansion-panel>
-               <v-expansion-panel>
+               <v-expansion-panel @click="scrollIntoView">
                   <v-expansion-panel-header><v-icon class="mr-2">mdi-progress-clock</v-icon><strong>Progress</strong></v-expansion-panel-header>
                   <v-expansion-panel-content>
                      <v-card>
@@ -169,7 +169,7 @@
                      </v-card>
                   </v-expansion-panel-content>
                </v-expansion-panel>
-               <v-expansion-panel>
+               <v-expansion-panel @click="scrollIntoView">
                   <v-expansion-panel-header><v-icon class="mr-2">mdi-cog</v-icon><strong>Settings</strong></v-expansion-panel-header>
                   <v-expansion-panel-content>
                      <v-card>
@@ -434,6 +434,7 @@
 
            if (this.selectedFile != this.job.file.fileName) {
               this.selectedFile = '';
+              viewer.gcodeProcessor.setLiveTracking(false);
               viewer.clearScene(true);
            }
            this.selectedFile = this.job.file.fileName;
@@ -526,6 +527,12 @@
         },
         cancelLoad() {
            viewer.gcodeProcessor.cancelLoad = true;
+        },
+        scrollIntoView(event) {
+           console.log(event.target);
+           setTimeout(() => {
+              event.target.scrollIntoView(true);
+           }, 250);
         },
      },
      watch: {

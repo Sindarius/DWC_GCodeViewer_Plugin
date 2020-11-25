@@ -78,8 +78,14 @@ export default class {
     }
     this.scene.clearColor = BABYLON.Color3.FromHexString(this.getBackgroundColor());
 
+    this.bed = new Bed(this.scene);
+    this.bed.registerClipIgnore = (mesh) => {
+      this.registerClipIgnore(mesh);
+    };
+    var bedCenter = this.bed.getCenter();
+
     // Add a camera to the scene and attach it to the canvas
-    this.orbitCamera = new BABYLON.ArcRotateCamera('Camera', Math.PI / 2, 2.356194, -250, new BABYLON.Vector3(117.5, 0, 117.5), this.scene);
+    this.orbitCamera = new BABYLON.ArcRotateCamera('Camera', Math.PI / 2, 2.356194, 250, new BABYLON.Vector3(bedCenter.x, -2, bedCenter.y), this.scene);
     this.orbitCamera.invertRotation = false;
     this.orbitCamera.attachControl(this.canvas, false);
     this.orbitCamera.inputs.attached.keyboard.angularSpeed = 0.005;
@@ -103,11 +109,6 @@ export default class {
       //Update light 2 position
       light2.position = that.scene.cameras[0].position;
     });
-
-    this.bed = new Bed(this.scene);
-    this.bed.registerClipIgnore = (mesh) => {
-      this.registerClipIgnore(mesh);
-    };
 
     this.buildObjects = new BuildObjects(this.scene);
     this.buildObjects.getMaxHeight = () => {

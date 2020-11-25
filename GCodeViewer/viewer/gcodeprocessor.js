@@ -95,15 +95,15 @@ export default class {
 
     this.minFeedColorString = localStorage.getItem('minFeedColor');
     if (!this.minFeedColorString) {
-      this.minFeedColorString = '#0000FFFF';
+      this.minFeedColorString = '#0000FF';
     }
-    this.minFeedColor = BABYLON.Color4.FromHexString(this.minFeedColorString);
+    this.minFeedColor = BABYLON.Color4.FromHexString(this.minFeedColorString.padEnd(9, 'F'));
 
     this.maxFeedColorString = localStorage.getItem('maxFeedColor');
     if (!this.maxFeedColorString) {
-      this.maxFeedColorString = '#FF0000FF';
+      this.maxFeedColorString = '#FF0000';
     }
-    this.maxFeedColor = BABYLON.Color4.FromHexString(this.maxFeedColorString);
+    this.maxFeedColor = BABYLON.Color4.FromHexString(this.maxFeedColorString.padEnd(9, 'F'));
 
     //render every nth row
     this.everyNthRow = 0;

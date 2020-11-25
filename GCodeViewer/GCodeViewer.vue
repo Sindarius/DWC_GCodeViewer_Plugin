@@ -531,7 +531,6 @@
            viewer.gcodeProcessor.cancelLoad = true;
         },
         scrollIntoView(event) {
-           console.log(event.target);
            setTimeout(() => {
               event.target.scrollIntoView(true);
            }, 250);

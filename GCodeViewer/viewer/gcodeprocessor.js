@@ -110,8 +110,14 @@ export default class {
     this.currentRowIdx = -1;
     this.currentZ = 0;
     this.renderTravels = false;
-    this.forceWireMode = false;
     this.lineVertexAlpha = false;
+
+    this.forceWireMode = localStorage.getItem('forceWireMode');
+    if (!this.forceWireMode) {
+      this.forceWireMode = false;
+    } else {
+      JSON.parse(this.forceWireMode);
+    }
 
     this.spreadLines = false;
     this.spreadLineAmount = 10;
@@ -775,6 +781,11 @@ export default class {
     localStorage.setItem('maxColorRate', max);
     this.minColorRate = min;
     this.maxColorRate = max;
+  }
+
+  updateForceWireMode(enabled) {
+    this.forceWireMode = enabled;
+    localStorage.setItem('forceWireMode', enabled);
   }
 }
 

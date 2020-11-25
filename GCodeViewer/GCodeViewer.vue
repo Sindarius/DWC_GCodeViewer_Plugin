@@ -337,6 +337,7 @@
         this.maxFeedColor = viewer.gcodeProcessor.maxFeedColorString;
         this.minColorRate = viewer.gcodeProcessor.minColorRate / 60;
         this.maxColorRate = viewer.gcodeProcessor.maxColorRate / 60;
+        this.forceWireMode = viewer.gcodeProcessor.forceWireMode;
 
         if (viewer.lastLoadFailed()) {
            this.renderQuality = 1;
@@ -443,7 +444,7 @@
            });
            try {
               viewer.gcodeProcessor.setLiveTracking(true);
-              viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
+              viewer.gcodeProcessor.updateForceWireMode(this.forceWireMode);
               await viewer.processFile(blob);
               this.maxHeight = viewer.getMaxHeight();
               this.sliderHeight = this.maxHeight;
@@ -462,7 +463,7 @@
               return;
            }
            this.loading = true;
-           viewer.gcodeProcessor.forceWireMode = this.forceWireMode;
+           viewer.gcodeProcessor.updateForceWireMode(this.forceWireMode);
            viewer.gcodeProcessor.setLiveTracking(this.visualizingCurrentJob);
 
            viewer.reload().finally(() => {
@@ -635,7 +636,7 @@
            this.reloadviewer();
         },
         forceWireMode: function (newValue) {
-           viewer.gcodeProcessor.forceWireMode = newValue;
+           viewer.gcodeProcessor.updateForceWireMode(newValue);
            this.reloadviewer();
         },
         colorMode: function (to) {

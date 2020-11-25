@@ -1,7 +1,7 @@
 <template>
    <v-row justify="center" align="center">
       <v-col class="shrink" :style="[backgroundColorStyle]">
-         <v-text-field v-model="color" v-on:input="updateValue(color)" hide-details class="ma-0 pa-0" solo>
+         <v-text-field v-model="color" v-on:blur="updateValue(color)" hide-details class="ma-0 pa-0" solo>
             <template v-slot:append>
                <v-menu v-model="menu" top nudge-bottom="105" nudge-left="16" :close-on-content-click="false">
                   <template v-slot:activator="{ on }">
@@ -9,7 +9,7 @@
                   </template>
                   <v-card>
                      <v-card-text class="pa-0">
-                        <v-color-picker v-model="color" flat v-on:input="updateValue(color)" />
+                        <v-color-picker class="index-placement" v-model="color" flat v-on:blur="updateValue(color)" />
                      </v-card-text>
                   </v-card>
                </v-menu>
@@ -23,7 +23,7 @@
   export default {
      props: ['editcolor'],
      data: () => ({
-        color: '#000000FF',
+        color: '#000000',
         menu: false,
      }),
      computed: {
@@ -50,7 +50,12 @@
      },
      methods: {
         updateValue(val) {
-           this.$emit('updatecolor', val);
+           if (!val.startsWith('#')) {
+              this.color = '#' + val;
+           }
+           this.color = this.color.toUpperCase().padEnd(7, '0').substring(0, 7);
+           console.log(this.color);
+           this.$emit('updatecolor', this.color);
         },
      },
      watch: {
@@ -64,4 +69,7 @@
 </script>
 
 <style>
+  .menuable__content__active {
+     z-index: 50 !important;
+  }
 </style>

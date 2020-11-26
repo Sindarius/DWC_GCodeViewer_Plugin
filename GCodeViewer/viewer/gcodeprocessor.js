@@ -134,16 +134,14 @@ export default class {
     this.extruderColors = [];
     for (var idx = 0; idx < colors.length; idx++) {
       var color = colors[idx];
-      if (color.length < 8) {
-        color = color + 'FF';
-      }
-      var extruderColor = BABYLON.Color4.FromHexString(color);
+
+      var extruderColor = BABYLON.Color4.FromHexString(color.padEnd(9, 'F'));
       this.extruderColors.push(extruderColor);
     }
   }
 
   setProgressColor(color) {
-    this.progressColor = BABYLON.Color4.FromHexString(color);
+    this.progressColor = BABYLON.Color4.FromHexString(color.padEnd(9, 'F'));
   }
 
   getMaxHeight() {

@@ -249,6 +249,7 @@ export default class {
 
   async processGcodeFile(file, renderQuality, clearCache) {
     this.cancelLoad = false;
+    this.absolute = true;
     this.currentZ = 0;
     this.currentRowIdx = -1;
     this.gcodeLineIndex = [];
@@ -276,7 +277,7 @@ export default class {
     this.lineCount = lines.length;
 
     if (this.debug) {
-      console.log(`Line Count : ${this.lineCount}`);
+      console.info(`Line Count : ${this.lineCount}`);
     }
 
     this.setRenderQualitySettings(this.lineCount, renderQuality);
@@ -323,7 +324,7 @@ export default class {
     }
 
     let tokens = tokenString.toUpperCase().split(' ');
-    if (tokens.length > 1) {
+    if (tokens.length > 0) {
       switch (tokens[0]) {
         case 'G0':
         case 'G1':
@@ -375,6 +376,10 @@ export default class {
           }
 
           line.end = this.currentPosition.clone();
+          if (this.debug) {
+            console.log(`${tokenString}   absolute:${this.absolute}`);
+            console.log(lineNumber, line);
+          }
 
           if (this.feedRateTrimming) {
             this.feedValues += this.currentFeedRate;
@@ -442,6 +447,11 @@ export default class {
           }
           this.currentColor = new BABYLON.Color4(finalColors[0], finalColors[1], finalColors[2], 0.1);
           break;
+        }
+        default: {
+          if (this.debug) {
+            console.log(tokenString);
+          }
         }
       }
     } else {

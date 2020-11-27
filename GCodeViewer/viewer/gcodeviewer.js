@@ -291,15 +291,34 @@ export default class {
     this.gcodeProcessor.unregisterEvents();
 
     for (let idx = this.scene.meshes.length - 1; idx >= 0; idx--) {
-      var sceneEntity = this.scene.meshes[idx];
+      let sceneEntity = this.scene.meshes[idx];
+      if (sceneEntity && this.debug) {
+        console.log(`Disposing ${sceneEntity.name}`);
+      }
       this.scene.removeMesh(sceneEntity);
       if (sceneEntity && typeof sceneEntity.dispose === 'function') {
         sceneEntity.dispose(false, true);
       }
     }
 
-    this.toolCursor = undefined;
+    for (let idx = this.scene.materials.length - 1; idx >= 0; idx--) {
+      let sceneEntity = this.scene.materials[idx];
+      if (sceneEntity.name !== 'solidMaterial') continue;
+      if (sceneEntity && this.debug) {
+        console.log(`Disposing ${sceneEntity.name}`);
+      }
+      this.scene.removeMaterial(sceneEntity);
+      if (sceneEntity && typeof sceneEntity.dispose === 'function') {
+        sceneEntity.dispose(false, true);
+      }
+    }
 
+    if (this.toolCursor) {
+      this.toolCursor.dispose(false, true);
+      this.toolCursor = undefined;
+    }
+
+    this.buildtoolCursor();
     this.bed.buildBed();
     this.axes.render();
   }
@@ -365,8 +384,8 @@ export default class {
   }
   buildtoolCursor() {
     if (this.toolCursor !== undefined) return;
-    this.toolCursor = new BABYLON.TransformNode('toolCursor');
-    this.toolCursorMesh = BABYLON.MeshBuilder.CreateCylinder('toolposition', { diameterTop: 0, diameterBottom: 1 }, this.scene);
+    this.toolCursor = new BABYLON.TransformNode('toolCursorContainer');
+    this.toolCursorMesh = BABYLON.MeshBuilder.CreateCylinder('toolCursorMesh', { diameterTop: 0, diameterBottom: 1 }, this.scene);
     this.toolCursorMesh.parent = this.toolCursor;
     this.toolCursorMesh.position = new BABYLON.Vector3(0, 3, 0);
     this.toolCursorMesh.rotate(BABYLON.Axis.X, Math.PI, BABYLON.Space.LOCAL);

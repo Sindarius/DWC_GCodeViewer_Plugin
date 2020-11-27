@@ -73,6 +73,13 @@
     right: 16px;
     z-index: 999;
   }
+  .viewer-box >>> #scene-explorer-host {
+    position: absolute !important;
+    left: calc(100% - 605px);
+    width: 300px;
+    top: 0px;
+    z-index: 50 !important;
+  }
 </style>
 
 <template>
@@ -221,28 +228,28 @@
 
 
 <script>
-  "use strict";
+  'use strict';
 
-  import gcodeViewer from "./viewer/gcodeviewer.js";
-  import { mapActions, mapState } from "vuex";
-  import Path from "../../utils/path.js";
-  import { StatusType, KinematicsName } from "../../store/machine/modelEnums";
+  import gcodeViewer from './viewer/gcodeviewer.js';
+  import { mapActions, mapState } from 'vuex';
+  import Path from '../../utils/path.js';
+  import { StatusType, KinematicsName } from '../../store/machine/modelEnums';
 
   let viewer = {};
 
   export default {
     data: () => ({
       drawer: false,
-      extruderColors: ["#00FFFF", "#FF00FF", "#FFFF00", "#000000", "#FFFFFF"],
-      backgroundColor: "#000000FF",
-      progressColor: "#FFFFFFFF",
-      viewerHeight: "400px",
-      testValue: "Test",
+      extruderColors: ['#00FFFF', '#FF00FF', '#FFFF00', '#000000', '#FFFFFF'],
+      backgroundColor: '#000000FF',
+      progressColor: '#FFFFFFFF',
+      viewerHeight: '400px',
+      testValue: 'Test',
       loading: false,
-      testData: "",
+      testData: '',
       showCursor: false,
       showTravelLines: false,
-      selectedFile: "",
+      selectedFile: '',
       nthRow: 1,
       renderQuality: 1,
       debugVisible: false,
@@ -258,22 +265,22 @@
         showDialog: false,
         info: {},
       },
-      hoverLabel: "",
+      hoverLabel: '',
       bedRenderMode: 0,
       showAxes: true,
       showObjectLabels: true,
       liveTrackingShowSolid: false,
       fullscreen: false,
-      bedColor: "",
+      bedColor: '',
       colorMode: 0,
       minColorRate: 20,
       maxColorRate: 60,
       maxFileFeedRate: 0,
-      minFeedColor: "#0000FF",
-      maxFeedColor: "#FF0000",
+      minFeedColor: '#0000FF',
+      maxFeedColor: '#FF0000',
     }),
     computed: {
-      ...mapState("machine/model", ["job", "move", "state"]),
+      ...mapState('machine/model', ['job', 'move', 'state']),
       isJobRunning: (state) => state.state.status === StatusType.simulating || state.state.status === StatusType.processing,
       visualizingCurrentJob: function (state) {
         try {
@@ -296,9 +303,9 @@
       },
       jobSelectionLabel() {
         if (!(this.canCancelObject && this.job.build.objects)) {
-          return "Show Object Selection";
+          return 'Show Object Selection';
         } else {
-          return "Show Object Selection(" + this.job.build.objects.length + ")";
+          return 'Show Object Selection(' + this.job.build.objects.length + ')';
         }
       },
     },
@@ -311,7 +318,7 @@
         if (this.showObjectSelection) {
           this.hoverLabel = label;
         } else {
-          this.hoverLabel = "";
+          this.hoverLabel = '';
         }
       };
       this.showObjectLabels = viewer.buildObjects.showLabel;
@@ -319,7 +326,7 @@
       if (this.move.axes) {
         for (var axesIdx in this.move.axes) {
           let axes = this.move.axes[axesIdx];
-          if ("XYZ".includes(axes.letter)) {
+          if ('XYZ'.includes(axes.letter)) {
             var letter = axes.letter.toLowerCase();
             viewer.bed.buildVolume[letter].min = axes.min;
             viewer.bed.buildVolume[letter].max = axes.max;
@@ -343,7 +350,7 @@
       if (viewer.lastLoadFailed()) {
         this.renderQuality = 1;
         viewer.updateRenderQuality(1);
-        this.$makeNotification("warning", "GCode Viewer", "Previous render failed. Setting render quality to SBC", 5000);
+        this.$makeNotification('warning', 'GCode Viewer', 'Previous render failed. Setting render quality to SBC', 5000);
         viewer.clearLoadFlag();
       }
       viewer.setCursorVisiblity(this.showCursor);
@@ -357,7 +364,7 @@
         try {
           let blob = await this.machineDownload({
             filename: Path.combine(path),
-            type: "text",
+            type: 'text',
           });
           this.loading = true;
 
@@ -371,33 +378,33 @@
         }
       };
 
-      this.$root.$on("view-3d-model", this.viewModelEvent);
+      this.$root.$on('view-3d-model', this.viewModelEvent);
 
       this.$nextTick(() => {
         viewer.saveExtruderColors(this.extruderColors);
       });
 
-      window.addEventListener("keyup", (e) => {
+      window.addEventListener('keyup', (e) => {
         var key = e.key || e.keyCode;
-        if (key === "Escape" || key === "Esc" || key === 27) {
+        if (key === 'Escape' || key === 'Esc' || key === 27) {
           this.fullscreen = false;
         }
       });
 
       //watch for resizing events
-      window.addEventListener("resize", () => {
+      window.addEventListener('resize', () => {
         this.$nextTick(() => {
           this.resize();
         });
       });
     },
     beforeDestroy() {
-      this.$root.$off("view-3d-model", this.viewModelEvent);
+      this.$root.$off('view-3d-model', this.viewModelEvent);
     },
     methods: {
-      ...mapActions("machine", {
-        machineDownload: "download",
-        sendCode: "sendCode",
+      ...mapActions('machine', {
+        machineDownload: 'download',
+        sendCode: 'sendCode',
       }),
       updateColor(index, value) {
         this.$set(this.extruderColors, index, value);
@@ -423,7 +430,7 @@
         viewer.bed.setBedColor(value);
       },
       resize() {
-        this.$refs.primarycontainer.style.height = window.innerHeight - document.getElementById("global-container").clientHeight - document.getElementsByClassName("v-toolbar__content")[0].clientHeight - 22 + "px";
+        this.$refs.primarycontainer.style.height = window.innerHeight - document.getElementById('global-container').clientHeight - document.getElementsByClassName('v-toolbar__content')[0].clientHeight - 22 + 'px';
         if (Object.keys(viewer).length !== 0) {
           viewer.resize();
         }
@@ -435,7 +442,7 @@
       },
       async loadRunningJob() {
         if (this.selectedFile != this.job.file.fileName) {
-          this.selectedFile = "";
+          this.selectedFile = '';
           viewer.gcodeProcessor.setLiveTracking(false);
           viewer.clearScene(true);
         }
@@ -444,7 +451,7 @@
         try {
           let blob = await this.machineDownload({
             filename: this.job.file.fileName,
-            type: "text",
+            type: 'text',
           });
 
           this.loading = true;
@@ -460,7 +467,7 @@
         }
       },
       resetExtruderColors() {
-        this.extruderColors = ["#00FFFF", "#FF00FF", "#FFFF00", "#000000", "#FFFFFF"];
+        this.extruderColors = ['#00FFFF', '#FF00FF', '#FFFF00', '#000000', '#FFFFFF'];
         viewer.saveExtruderColors(this.extruderColors);
       },
       reloadviewer() {
@@ -482,12 +489,12 @@
           try {
             viewer.buildObjects.loadObjectBoundaries(this.job.build.objects);
           } catch {
-            console.warn("No objects");
+            //console.warn("No objects");
           }
         });
       },
       clearScene() {
-        this.selectedFile = "";
+        this.selectedFile = '';
         viewer.clearScene(true);
       },
       objectSelectionCallback(selectedObject) {
@@ -496,7 +503,7 @@
       },
       async objectDialogCancelObject() {
         this.objectDialogData.showDialog = false;
-        let action = this.objectDialogData.info.cancelled ? "U" : "P";
+        let action = this.objectDialogData.info.cancelled ? 'U' : 'P';
         await this.sendCode(`M486 ${action}${this.objectDialogData.info.index}`);
         this.objectDialogData.info = {};
       },
@@ -507,7 +514,7 @@
       },
       async fileSelected(e) {
         const reader = new FileReader();
-        reader.addEventListener("load", async (event) => {
+        reader.addEventListener('load', async (event) => {
           const blob = event.target.result;
           // Do something with result
           await viewer.processFile(blob);
@@ -518,7 +525,7 @@
         });
         this.loading = true;
         reader.readAsText(e.target.files[0]);
-        e.target.value = "";
+        e.target.value = '';
       },
       toggleFullScreen() {
         this.fullscreen = !this.fullscreen;
@@ -595,7 +602,7 @@
         viewer.gcodeProcessor.spreadLines = newValue;
         this.reloadviewer();
       },
-      "job.build.objects": {
+      'job.build.objects': {
         deep: true,
         handler(newValue) {
           if (viewer && viewer.buildObjects) {
@@ -609,7 +616,7 @@
           viewer.buildObjects.showObjectSelection(newValue);
         } else {
           this.showObjectSelection = false;
-          this.hoverLabel = "";
+          this.hoverLabel = '';
         }
       },
       isJobRunning: function (newValue) {

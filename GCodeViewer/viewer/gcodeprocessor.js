@@ -123,10 +123,11 @@ export default class {
     this.spreadLineAmount = 10;
     this.debug = false;
     this.specularColor = new BABYLON.Color4(0.1, 0.1, 0.1, 0.1);
-    this.chunkLoadedCallback = () => {}; //use this to fire update events based on file load progress.
 
     this.lookAheadLength = 500;
     this.cancelLoad = false;
+
+    this.loadingProgressCallback;
   }
 
   setExtruderColors(colors) {
@@ -273,6 +274,11 @@ export default class {
     }
 
     this.lineCount = lines.length;
+
+    if (this.debug) {
+      console.log(`Line Count : ${this.lineCount}`);
+    }
+
     this.setRenderQualitySettings(this.lineCount, renderQuality);
 
     //set initial color to extruder 0
@@ -290,7 +296,10 @@ export default class {
       filePosition += line.length + 1;
       line.trim();
       if (!line.startsWith(';')) {
-        await this.processLine(line, filePosition);
+        this.processLine(line, filePosition);
+        if (this.loadingProgressCallback) {
+          this.loadingProgressCallback(filePosition / line.length);
+        }
       }
       if (Date.now() - this.timeStamp > 10) {
         await this.pauseProcessing();
@@ -416,7 +425,7 @@ export default class {
           //this resets positioning, typically for extruder, probably won't need
           break;
         case 'M567': {
-          if (this.colorMode === this.colorMode.color) break;
+          if (this.colorMode === ColorMode.Feed) break;
           for (let tokenIdx = 1; tokenIdx < tokens.length; tokenIdx++) {
             let token = tokens[tokenIdx];
             var finalColors = [1, 1, 1];
@@ -436,7 +445,7 @@ export default class {
         }
       }
     } else {
-      if (tokenString.startsWith('T') && !this.colorMode !== ColorMode.color) {
+      if (tokenString.startsWith('T') && this.colorMode === ColorMode.Feed) {
         var extruder = Number(tokenString.substring(1)) % this.extruderCount; //For now map to extruders 0 - 4
         if (extruder < 0) extruder = 0; // Cover the case where someone sets a tool to a -1 value
         this.currentColor = this.extruderColors[extruder].clone();
@@ -448,7 +457,6 @@ export default class {
       //lets build the mesh
       this.createScene(this.scene);
       await this.pauseProcessing();
-      this.chunkLoadedCallback();
       this.lineMeshIndex++;
     }
   }
@@ -760,6 +768,9 @@ export default class {
   }
 
   setColorMode(mode) {
+    if (!mode) {
+      this.colorMode = ColorMode.Color;
+    }
     localStorage.setItem('processorColorMode', mode);
     this.colorMode = mode;
   }

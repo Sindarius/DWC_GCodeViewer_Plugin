@@ -147,7 +147,7 @@ export default class {
       this.scene.setRenderingAutoClearDepthStencil(2, false, false, false);
 
       var hl = new BABYLON.HighlightLayer('hl', this.scene, { isStroke: true, blurTextureSizeRatio: 3 });
-      hl.addMesh(this.bedMesh, new BABYLON.Color4(0, 0, 1, 1));
+      hl.addMesh(this.bedMesh,this.getBedColor4());
 
       this.bedMesh.onBeforeRenderObservable.add(() => {
         this.scene.getEngine().setColorWrite(false);
@@ -177,7 +177,8 @@ export default class {
       this.bedMesh.edgesWidth = 100;
       this.bedMesh.material = this.boxMaterial;
       this.bedMesh.isPickable = false;
-      this.bedMesh.edgesColor = new BABYLON.Color4(0, 0, 1, 1);
+      this.bedMesh.edgesColor = this.getBedColor4();
+     
       this.registerClipIgnore(this.bedMesh);
     }
   }
@@ -211,6 +212,9 @@ export default class {
       this.dispose();
       this.buildBed();
     }
+  }
+  getBedColor4(){
+   return BABYLON.Color4.FromHexString(this.getBedColor().padEnd(9,'F'));
   }
   dispose() {
     this.bedMesh.dispose(false, true);

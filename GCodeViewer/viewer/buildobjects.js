@@ -49,9 +49,9 @@ export default class {
     return material;
   }
   rebuildMaterials() {
-    this.baseMaterial = this.setBuildMaterial('BuildObjectBaseMaterial', new BABYLON.Color3(0.1, 0.5, 0.1));
+    this.baseMaterial = this.setBuildMaterial('BuildObjectBaseMaterial', new BABYLON.Color4(0.1, 0.5, 0.1), 0.25);
     this.highlightMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(0.8, 0.8, 0.8));
-    this.cancelledMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(1, 0, 0));
+    this.cancelledMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(1, 0, 0), 0.4);
     this.cancelledHighlightMaterial = this.setBuildMaterial('BuildObjectHighlightMateria', new BABYLON.Color3(1, 1, 0), 0.6);
     let material = new BABYLON.Texture.CreateFromBase64String(this.xmark, 'checkerboard', this.scene);
     this.cancelledMaterial.diffuseTexture = material;
@@ -211,8 +211,14 @@ export default class {
   setObjectTexture(mesh) {
     if (mesh.metadata.cancelled) {
       mesh.material = this.cancelledMaterial;
+      mesh.enableEdgesRendering();
+      mesh.edgesWidth = 15.0;
+      mesh.edgesColor = new BABYLON.Color4(1, 0, 0, 1);
     } else {
       mesh.material = this.baseMaterial;
+      mesh.enableEdgesRendering();
+      mesh.edgesWidth = 15.0;
+      mesh.edgesColor = new BABYLON.Color4(0, 1, 0, 1);
     }
   }
   handleClick(pickInfo) {

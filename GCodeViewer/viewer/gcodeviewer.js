@@ -93,6 +93,8 @@ export default class {
     this.orbitCamera.inputs.attached.keyboard.panningSensibility = 2;
     this.orbitCamera.panningSensibility = 10;
     this.orbitCamera.zoomingSensibility = 10;
+    this.orbitCamera.wheelDeltaPercentage = 0.02;
+    this.orbitCamera.pinchDeltaPercentage = 0.02;
     //Disabled at the moment
     //this.flyCamera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, -10), this.scene);
 

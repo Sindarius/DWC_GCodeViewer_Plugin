@@ -65,6 +65,7 @@
       editcolor: {
         handler: function (newVal) {
           this.color = newVal;
+          this.internalTextColor = newVal;
         },
       },
     },

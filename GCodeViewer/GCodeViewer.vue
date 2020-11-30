@@ -236,6 +236,7 @@
 								<v-card-text>
 									<v-checkbox v-model="showAxes" label="Show Axes"></v-checkbox>
 									<v-checkbox v-model="showObjectLabels" label="Show Object Labels"></v-checkbox>
+									<v-switch v-model="cameraInertia" label="Camera Inertia"></v-switch>
 								</v-card-text>
 							</v-card>
 						</v-expansion-panel-content>
@@ -317,6 +318,7 @@ export default {
 		maxFileFeedRate: 0,
 		minFeedColor: '#0000FF',
 		maxFeedColor: '#FF0000',
+		cameraInertia : true
 	}),
 	computed: {
 		...mapState('machine/model', ['job', 'move', 'state']),
@@ -373,6 +375,8 @@ export default {
 			}
 			viewer.bed.commitBedSize();
 		}
+
+		this.cameraInertia = viewer.cameraInertia;
 
 		viewer.bed.setDelta(this.isDelta);
 		this.bedRenderMode = viewer.bed.renderMode;
@@ -708,6 +712,9 @@ export default {
 		maxColorRate: function (to) {
 			viewer.gcodeProcessor.updateColorRate(this.minColorRate * 60, to * 60);
 		},
+		cameraInertia: function(to){
+			viewer.setCameraInertia(to);
+		}
 	},
 };
 </script>

@@ -27,6 +27,8 @@ export default class {
     this.zBottomClipValue;
     this.cancelHitTimer = 0;
 
+    this.cameraInertia = localStorage.getItem('cameraInertia') === 'true';
+
     //objects
     this.bed;
     this.buildObjects;
@@ -88,13 +90,9 @@ export default class {
     this.orbitCamera = new BABYLON.ArcRotateCamera('Camera', Math.PI / 2, 2.356194, 250, new BABYLON.Vector3(bedCenter.x, -2, bedCenter.y), this.scene);
     this.orbitCamera.invertRotation = false;
     this.orbitCamera.attachControl(this.canvas, false);
-    this.orbitCamera.inputs.attached.keyboard.angularSpeed = 0.005;
-    this.orbitCamera.inputs.attached.keyboard.zoomingSensibility = 2;
-    this.orbitCamera.inputs.attached.keyboard.panningSensibility = 2;
-    this.orbitCamera.panningSensibility = 10;
-    this.orbitCamera.zoomingSensibility = 10;
-//    this.orbitCamera.wheelDeltaPercentage = 0.02;
-//    this.orbitCamera.pinchDeltaPercentage = 0.02;
+    this.updateCameraInertiaProperties()
+    //    this.orbitCamera.wheelDeltaPercentage = 0.02;
+    //    this.orbitCamera.pinchDeltaPercentage = 0.02;
     //Disabled at the moment
     //this.flyCamera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, -10), this.scene);
 
@@ -105,7 +103,7 @@ export default class {
     light2.diffuse = new BABYLON.Color3(1, 1, 1);
     light2.specular = new BABYLON.Color3(1, 1, 1);
     var that = this;
-    this.engine.runRenderLoop(function() {
+    this.engine.runRenderLoop(function () {
       that.scene.render();
 
       //Update light 2 position
@@ -135,12 +133,12 @@ export default class {
   }
 
   refreshUI() {
-    setTimeout(function() {}, 0);
+    setTimeout(function () { }, 0);
   }
 
   setFileName(path) {
     if (this.hasCacheSupport) {
-      window.caches.open('gcode-viewer').then(function(cache) {
+      window.caches.open('gcode-viewer').then(function (cache) {
         var pathData = new Blob([path], { type: 'text/plain' });
         cache.put('gcodeFileName', new Response(pathData));
       });
@@ -149,9 +147,9 @@ export default class {
 
   getFileName() {
     if (this.hasCacheSupport) {
-      window.caches.open('gcode-viewer').then(function(cache) {
-        cache.match('gcodeData').then(function(response) {
-          response.text().then(function(text) {
+      window.caches.open('gcode-viewer').then(function (cache) {
+        cache.match('gcodeData').then(function (response) {
+          response.text().then(function (text) {
             return text;
           });
         });
@@ -199,7 +197,7 @@ export default class {
 
     let that = this;
     if (this.hasCacheSupport) {
-      window.caches.open('gcode-viewer').then(function(cache) {
+      window.caches.open('gcode-viewer').then(function (cache) {
         var gcodeData = new Blob([fileContents], { type: 'text/plain' });
         cache.put('gcodeData', new Response(gcodeData));
       });
@@ -216,7 +214,7 @@ export default class {
       this.clearLoadFlag();
     }
     this.setLoadFlag();
-    await this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function() {
+    await this.gcodeProcessor.processGcodeFile(fileContents, this.renderQuality, function () {
       if (that.hasCacheSupport) {
         that.fileData = ''; //free resourcs sooner
       }
@@ -330,9 +328,9 @@ export default class {
 
       if (this.hasCacheSupport) {
         let that = this;
-        window.caches.open('gcode-viewer').then(function(cache) {
-          cache.match('gcodeData').then(function(response) {
-            response.text().then(function(text) {
+        window.caches.open('gcode-viewer').then(function (cache) {
+          cache.match('gcodeData').then(function (response) {
+            response.text().then(function (text) {
               that.processFile(text).then(() => {
                 resolve();
               });
@@ -411,5 +409,40 @@ export default class {
       this.scene.clipPlane = new BABYLON.Plane(0, 1, 0, this.zTopClipValue);
       this.scene.clipPlane2 = new BABYLON.Plane(0, -1, 0, this.zBottomClipValue);
     });
+  }
+  updateCameraInertiaProperties() {
+
+    console.log()
+    if (this.cameraInertia) {
+      this.orbitCamera.speed = 2;
+      this.orbitCamera.inertia = 0.9;
+      this.orbitCamera.panningInertia = 0.9;
+      this.orbitCamera.inputs.attached.keyboard.angularSpeed = 0.005;
+      this.orbitCamera.inputs.attached.keyboard.zoomingSensibility = 2;
+      this.orbitCamera.inputs.attached.keyboard.panningSensibility = 2;
+      this.orbitCamera.angularSensibilityX = 1000;
+      this.orbitCamera.angularSensibilityY = 1000;
+      this.orbitCamera.panningSensibility = 10;
+      this.orbitCamera.wheelPrecision  = 1;
+      
+    }
+    else {
+      this.orbitCamera.speed = 500;
+      this.orbitCamera.inertia = 0;
+      this.orbitCamera.panningInertia = 0;
+      this.orbitCamera.inputs.attached.keyboard.angularSpeed = 0.05;
+      this.orbitCamera.inputs.attached.keyboard.zoomingSensibility =0.5;
+      this.orbitCamera.inputs.attached.keyboard.panningSensibility = 0.5;
+      this.orbitCamera.angularSensibilityX = 200;
+      this.orbitCamera.angularSensibilityY = 200;
+      this.orbitCamera.panningSensibility = 2;
+      this.orbitCamera.wheelPrecision = 0.25;
+    }
+
+  }
+  setCameraInertia(enabled) {
+    this.cameraInertia = enabled;
+    localStorage.setItem('cameraInertia', enabled);
+    this.updateCameraInertiaProperties()
   }
 }

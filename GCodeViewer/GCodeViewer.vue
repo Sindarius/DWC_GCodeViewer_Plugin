@@ -458,7 +458,6 @@ export default {
 			viewer.setProgressColor(value);
 		},
 		updateMinFeedColor(value) {
-			console.log(value);
 			viewer.gcodeProcessor.updateMinFeedColor(value);
 		},
 		updateMaxFeedColor(value) {

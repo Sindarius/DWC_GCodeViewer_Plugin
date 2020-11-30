@@ -343,14 +343,14 @@ export default class {
 
     let tokens;
     tokenString = tokenString.toUpperCase();
-    let command = tokenString.match(/[GM]+[0-9.]+|S+/);
-
+    let command = tokenString.match(/[GM]+[0-9.]+/); //|S+
     if (command != null) {
+    command =   command.filter(c => c.startsWith('G') || c.startsWith('M'));
       switch (command[0]) {
         case 'G0':
         case 'G1':
           {
-            tokens = tokenString.split(/(?=[XYZEF])/);
+            tokens = tokenString.split(/(?=[GXYZEF])/);
             var line = new gcodeLine();
             line.gcodeLineNumber = lineNumber;
             line.start = this.currentPosition.clone();
@@ -444,7 +444,7 @@ export default class {
           } break;
         case 'G2':
         case 'G3':
-          tokens = tokenString.split(/(?=[XYZEF])/);
+          tokens = tokenString.split(/(?=[GXYZEF])/);
           // var cw = tokens[0] === 'G2';
           // console.log(`Clockwise move ${cw}`);
           break;
@@ -463,6 +463,21 @@ export default class {
           break;
         case 'S':
           this.hasSpindle = true;
+          break;
+        case 'M3':
+        case 'M4': {
+          console.log("M3")
+          let tokens = tokenString.split(/(?=[SM])/);
+          console.log(tokens);
+          let spindleSpeed = tokens.filter(speed => speed.startsWith('S'))
+          console.log(spindleSpeed[0]);
+          spindleSpeed = spindleSpeed[0] ? Number(spindleSpeed[0].substring(1)) : 0;
+          console.log(spindleSpeed);
+          if (spindleSpeed > 0) {
+            this.hasSpindle = true;
+          }
+
+        }
           break;
         case 'M567': {
           let tokens = tokenString.split(/(?=[PE])/);

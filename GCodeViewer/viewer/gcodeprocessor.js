@@ -109,7 +109,7 @@ export default class {
     this.everyNthRow = 0;
     this.currentRowIdx = -1;
     this.currentZ = 0;
-    this.renderTravels = false;
+    this.renderTravels = true;
     this.lineVertexAlpha = false;
 
     this.forceWireMode = localStorage.getItem('forceWireMode');
@@ -128,6 +128,8 @@ export default class {
     this.cancelLoad = false;
 
     this.loadingProgressCallback;
+
+    this.hasSpindle = false;
   }
 
   setExtruderColors(colors) {
@@ -160,6 +162,7 @@ export default class {
 
     this.refreshTime = 5000;
     this.everyNthRow = 1;
+    this.renderTravels = true;
 
     //Render Mode Multipliers
     // 12x - 3d
@@ -247,7 +250,8 @@ export default class {
     this.everyNthRow = 20;
   }
 
-  async processGcodeFile(file, renderQuality, clearCache) {
+  initVariables() {
+    this.currentPosition = new BABYLON.Vector3(0, 0, 0);
     this.cancelLoad = false;
     this.absolute = true;
     this.currentZ = 0;
@@ -259,6 +263,12 @@ export default class {
     this.currentLayerHeight = 0;
     this.minFeedRate = Number.MAX_VALUE;
     this.maxFeedRate = 0;
+    this.hasSpindle = false;
+
+  }
+
+  async processGcodeFile(file, renderQuality, clearCache) {
+    this.initVariables();
 
     if (renderQuality === undefined || renderQuality === null) {
       renderQuality = 4;
@@ -297,7 +307,10 @@ export default class {
       filePosition += line.length + 1;
       line.trim();
       if (!line.startsWith(';')) {
+
         this.processLine(line, filePosition);
+        // this.processLineV2(line, filePosition);
+
         if (this.loadingProgressCallback) {
           this.loadingProgressCallback(filePosition / line.length);
         }
@@ -305,6 +318,11 @@ export default class {
       if (Date.now() - this.timeStamp > 10) {
         await this.pauseProcessing();
       }
+    }
+
+    //build the travel mesh
+    if (this.renderTravels) {
+      this.createTravelLines(this.scene)
     }
 
     file = {}; //Clear out the file.
@@ -323,98 +341,112 @@ export default class {
       tokenString = tokenString.substring(0, commentIndex - 1).trim();
     }
 
-    let tokens = tokenString.toUpperCase().split(' ');
-    if (tokens.length > 0) {
-      switch (tokens[0]) {
+    let tokens;
+    tokenString = tokenString.toUpperCase();
+    let command = tokenString.match(/[GM]+[0-9.]+|S+/);
+
+    if (command != null) {
+      switch (command[0]) {
         case 'G0':
         case 'G1':
-          var line = new gcodeLine();
-          line.gcodeLineNumber = lineNumber;
-          line.start = this.currentPosition.clone();
-          for (let tokenIdx = 1; tokenIdx < tokens.length; tokenIdx++) {
-            let token = tokens[tokenIdx];
-            switch (token[0]) {
-              case 'X':
-                this.currentPosition.x = this.absolute ? Number(token.substring(1)) : this.currentPosition.x + Number(token.substring(1));
-                break;
-              case 'Y':
-                this.currentPosition.z = this.absolute ? Number(token.substring(1)) : this.currentPosition.z + Number(token.substring(1));
-                break;
-              case 'Z':
-                this.currentPosition.y = this.absolute ? Number(token.substring(1)) : this.currentPosition.y + Number(token.substring(1));
-                if (this.spreadLines) {
-                  this.currentPosition.y *= this.spreadLineAmount;
-                }
-                // this.maxHeight = this.currentPosition.y;
-                break;
-              case 'E':
-                line.extruding = true;
-                this.maxHeight = this.currentPosition.y; //trying to get the max height of the model.
-                break;
-              case 'F':
-                this.currentFeedRate = Number(token.substring(1));
-                if (this.currentFeedRate > this.maxFeedRate) {
-                  this.maxFeedRate = this.currentFeedRate;
-                }
-                if (this.currentFeedRate < this.minFeedRate) {
-                  this.minFeedRate = this.currentFeedRate;
-                }
-
-                if (this.colorMode === ColorMode.Feed) {
-                  let ratio = (this.currentFeedRate - this.minColorRate) / (this.maxColorRate - this.minColorRate);
-                  if (ratio >= 1) {
-                    this.currentColor = this.maxFeedColor;
-                  } else if (ratio <= 0) {
-                    this.currentColor = this.minFeedColor;
-                  } else {
-                    this.currentColor = BABYLON.Color4.Lerp(this.minFeedColor, this.maxFeedColor, ratio);
+          {
+            tokens = tokenString.split(/(?=[XYZEF])/);
+            var line = new gcodeLine();
+            line.gcodeLineNumber = lineNumber;
+            line.start = this.currentPosition.clone();
+            for (let tokenIdx = 1; tokenIdx < tokens.length; tokenIdx++) {
+              let token = tokens[tokenIdx];
+              switch (token[0]) {
+                case 'X':
+                  this.currentPosition.x = this.absolute ? Number(token.substring(1)) : this.currentPosition.x + Number(token.substring(1));
+                  break;
+                case 'Y':
+                  this.currentPosition.z = this.absolute ? Number(token.substring(1)) : this.currentPosition.z + Number(token.substring(1));
+                  break;
+                case 'Z':
+                  this.currentPosition.y = this.absolute ? Number(token.substring(1)) : this.currentPosition.y + Number(token.substring(1));
+                  if (this.spreadLines) {
+                    this.currentPosition.y *= this.spreadLineAmount;
                   }
-                }
+                  // this.maxHeight = this.currentPosition.y;
+                  break;
+                case 'E':
+                  line.extruding = true;
+                  this.maxHeight = this.currentPosition.y; //trying to get the max height of the model.
+                  break;
+                case 'F':
+                  this.currentFeedRate = Number(token.substring(1));
+                  if (this.currentFeedRate > this.maxFeedRate) {
+                    this.maxFeedRate = this.currentFeedRate;
+                  }
+                  if (this.currentFeedRate < this.minFeedRate) {
+                    this.minFeedRate = this.currentFeedRate;
+                  }
 
-                break;
+                  if (this.colorMode === ColorMode.Feed) {
+                    let ratio = (this.currentFeedRate - this.minColorRate) / (this.maxColorRate - this.minColorRate);
+                    if (ratio >= 1) {
+                      this.currentColor = this.maxFeedColor;
+                    } else if (ratio <= 0) {
+                      this.currentColor = this.minFeedColor;
+                    } else {
+                      this.currentColor = BABYLON.Color4.Lerp(this.minFeedColor, this.maxFeedColor, ratio);
+                    }
+                  }
+
+                  break;
+              }
             }
-          }
 
-          line.end = this.currentPosition.clone();
-          if (this.debug) {
-            console.log(`${tokenString}   absolute:${this.absolute}`);
-            console.log(lineNumber, line);
-          }
-
-          if (this.feedRateTrimming) {
-            this.feedValues += this.currentFeedRate;
-            this.numChanges++;
-            this.avgFeed = (this.feedValues / this.numChanges) * this.underspeedPercent;
-          }
-
-          //Nth row exclusion
-          if (this.everyNthRow > 1 && line.extruding) {
-            if (this.currentPosition.y > this.currentZ) {
-              this.currentRowIdx++;
-              this.currentZ = this.currentPosition.y;
+            line.end = this.currentPosition.clone();
+            if (this.debug) {
+              console.log(`${tokenString}   absolute:${this.absolute}`);
+              console.log(lineNumber, line);
             }
 
-            if ((this.currentRowIdx % this.everyNthRow !== 0) ^ (this.currentRowIdx < 2)) {
-              return;
+            if (this.feedRateTrimming) {
+              this.feedValues += this.currentFeedRate;
+              this.numChanges++;
+              this.avgFeed = (this.feedValues / this.numChanges) * this.underspeedPercent;
             }
-          }
 
-          if (line.extruding && line.length() >= this.lineLengthTolerance && (!this.feedRateTrimming || this.currentFeedRate < this.avgFeed) && (this.showTravels || line.extruding)) {
-            line.color = this.currentColor.clone();
-            this.lines.push(line);
-            if (this.currentPosition.y > this.currentLayerHeight && this.currentPosition.y < 20) {
-              this.previousLayerHeight = this.currentLayerHeight;
-              this.currentLayerHeight = this.currentPosition.y;
+            //Nth row exclusion
+            if (this.everyNthRow > 1 && line.extruding) {
+              if (this.currentPosition.y > this.currentZ) {
+                this.currentRowIdx++;
+                this.currentZ = this.currentPosition.y;
+              }
+
+              if ((this.currentRowIdx % this.everyNthRow !== 0) ^ (this.currentRowIdx < 2)) {
+                return;
+              }
             }
-          } else if (this.showTravels && !line.extruding) {
-            line.color = new BABYLON.Color4(1, 0, 0, 1);
-            this.travels.push(line);
-          }
-          break;
+
+            let spindleCutting = this.hasSpindle && command[0] === "G1";
+            let lineTolerance = line.length() >= this.lineLengthTolerance;
+            //feed rate trimming was disabled (probably will remove)
+            // let feedRateTrimming=  this.feedRateTrimming && this.currentFeedRate < this.avgFeed;
+
+            if (spindleCutting || (lineTolerance && line.extruding)) {
+              line.color = this.currentColor.clone();
+              this.lines.push(line);
+
+              if (this.currentPosition.y > this.currentLayerHeight && this.currentPosition.y < 20) {
+                this.previousLayerHeight = this.currentLayerHeight;
+                this.currentLayerHeight = this.currentPosition.y;
+              }
+
+            } else if (this.renderTravels && !line.extruding) {
+              line.color = new BABYLON.Color4(1, 0, 0, 1);
+              this.travels.push(line);
+            }
+
+          } break;
         case 'G2':
         case 'G3':
-          var cw = tokens[0] === 'G2';
-          console.log(`Clockwise move ${cw}`);
+          tokens = tokenString.split(/(?=[XYZEF])/);
+          // var cw = tokens[0] === 'G2';
+          // console.log(`Clockwise move ${cw}`);
           break;
         case 'G28':
           //Home
@@ -429,7 +461,11 @@ export default class {
         case 'G92':
           //this resets positioning, typically for extruder, probably won't need
           break;
+        case 'S':
+          this.hasSpindle = true;
+          break;
         case 'M567': {
+          let tokens = tokenString.split(/(?=[PE])/);
           if (this.colorMode === ColorMode.Feed) break;
           for (let tokenIdx = 1; tokenIdx < tokens.length; tokenIdx++) {
             let token = tokens[tokenIdx];
@@ -449,11 +485,11 @@ export default class {
           break;
         }
         default: {
-          if (tokenString.startsWith('T') && this.colorMode !== ColorMode.Feed ) {
+          if (tokenString.startsWith('T') && this.colorMode !== ColorMode.Feed) {
             var extruder = Number(tokenString.substring(1)) % this.extruderCount; //For now map to extruders 0 - 4
             if (extruder < 0) extruder = 0; // Cover the case where someone sets a tool to a -1 value
             this.currentColor = this.extruderColors[extruder].clone();
-          }    
+          }
           if (this.debug) {
             console.log(tokenString);
           }
@@ -468,6 +504,62 @@ export default class {
       this.lineMeshIndex++;
     }
   }
+
+
+
+
+
+
+
+  processGCodeLine(line) {
+    var code = line.split(/(?=[XYZ])/);
+    switch (code[0]) {
+      case "G0":
+      case "G1":
+        for (let tokenIdx = 1; tokenIdx < code.length; tokenIdx++) {
+          var token = code[tokenIdx];
+          switch (token[0]) {
+            case "X": this.absolute ? this.currentPosition.x = Number(token.substring(1)) : this.currentPosition.x += Number(token.substring(1)); break;
+            case "Y": this.absolute ? this.currentPosition.y = Number(token.substring(1)) : this.currentPosition.y += Number(token.substring(1)); break;
+            case "Z": this.absolute ? this.currentPosition.z = Number(token.substring(1)) : this.currentPosition.z += Number(token.substring(1)); break;
+          }
+          console.log(this.currentPosition);
+        }
+        break;
+      default: break;
+    }
+  }
+
+  processMCodeLine(line, lineNumber) {
+    console.log(`${line} ${lineNumber}`)
+  }
+
+  async processLineV2(tokenString, lineNumber) {
+
+    //Remove the comments in the line
+    let commentIndex = tokenString.indexOf(';');
+    if (commentIndex > -1) {
+      tokenString = tokenString.substring(0, commentIndex - 1).trim();
+    }
+    tokenString = tokenString.toUpperCase()
+
+    switch (tokenString[0]) {
+      case "G":
+        this.processGCodeLine(tokenString, lineNumber);
+        break;
+      case "M":
+        break;
+      default:
+        break;
+    }
+
+
+
+  }
+
+
+
+
 
   renderLineMode(scene) {
     let that = this;
@@ -711,12 +803,7 @@ export default class {
       this.renderPointMode(scene);
     }
 
-    if (this.renderTravels) {
-      this.createTravelLines(scene);
-    }
-
     this.lines = [];
-    this.travels = [];
 
     this.scene.render();
   }
@@ -742,6 +829,7 @@ export default class {
       scene
     );
     travelMesh.isVisible = false;
+    this.travels = []; //clear out the travel array after creating the mesh
   }
   updateFilePosition(filePosition) {
     if (this.liveTracking) {

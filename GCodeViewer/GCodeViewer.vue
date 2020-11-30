@@ -123,7 +123,7 @@
 					<input ref="fileInput" type="file" :accept="'.g,.gcode,.gc,.gco,.nc,.ngc,.tap'" hidden @change="fileSelected" multiple />
 					<v-switch class="mt-4" v-model="showObjectSelection" :disabled="!canCancelObject" :label="jobSelectionLabel"></v-switch>
 					<v-switch v-model="showCursor" label="Show Cursor"></v-switch>
-					<!--v-checkbox v-model="showTravelLines" label="Show Travels"></v-checkbox-->
+					<v-switch v-model="showTravelLines" label="Show Travels"></v-switch>
 				</v-card>
 				<v-expansion-panels>
 					<v-expansion-panel @click="scrollIntoView">

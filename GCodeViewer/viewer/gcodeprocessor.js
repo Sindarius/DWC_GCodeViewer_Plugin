@@ -340,12 +340,14 @@ export default class {
     if (commentIndex > -1) {
       tokenString = tokenString.substring(0, commentIndex - 1).trim();
     }
-
     let tokens;
+    
     tokenString = tokenString.toUpperCase();
+
     let command = tokenString.match(/[GM]+[0-9.]+/); //|S+
+
     if (command != null) {
-    command =   command.filter(c => c.startsWith('G') || c.startsWith('M'));
+      command = command.filter(c => c.startsWith('G') || c.startsWith('M'));
       switch (command[0]) {
         case 'G0':
         case 'G1':
@@ -499,17 +501,19 @@ export default class {
           this.currentColor = new BABYLON.Color4(finalColors[0], finalColors[1], finalColors[2], 0.1);
           break;
         }
-        default: {
-          if (tokenString.startsWith('T') && this.colorMode !== ColorMode.Feed) {
-            var extruder = Number(tokenString.substring(1)) % this.extruderCount; //For now map to extruders 0 - 4
-            if (extruder < 0) extruder = 0; // Cover the case where someone sets a tool to a -1 value
-            this.currentColor = this.extruderColors[extruder].clone();
-          }
-          if (this.debug) {
-            console.log(tokenString);
-          }
-        }
       }
+    }
+    else {
+      //command is null so we need to check a couple other items.
+      if (tokenString.startsWith('T') && this.colorMode !== ColorMode.Feed) {
+        var extruder = Number(tokenString.substring(1)) % this.extruderCount; //For now map to extruders 0 - 4
+        if (extruder < 0) extruder = 0; // Cover the case where someone sets a tool to a -1 value
+        this.currentColor = this.extruderColors[extruder].clone();
+      }
+      if (this.debug) {
+        console.log(tokenString);
+      }
+
     }
     //break lines into manageable meshes at cost of extra draw calls
     if (this.lines.length >= this.meshBreakPoint) {

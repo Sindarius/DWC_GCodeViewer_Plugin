@@ -3,6 +3,7 @@
 
 import * as BABYLON from 'babylonjs';
 import gcodeLine from './gcodeline';
+import { doArc } from './utils.js'
 
 export const RenderMode = {
   Block: 1,
@@ -341,7 +342,7 @@ export default class {
       tokenString = tokenString.substring(0, commentIndex - 1).trim();
     }
     let tokens;
-    
+
     tokenString = tokenString.toUpperCase();
 
     let command = tokenString.match(/[GM]+[0-9.]+/); //|S+
@@ -445,11 +446,30 @@ export default class {
 
           } break;
         case 'G2':
-        case 'G3':
-          tokens = tokenString.split(/(?=[GXYZEF])/);
-          // var cw = tokens[0] === 'G2';
-          // console.log(`Clockwise move ${cw}`);
-          break;
+        case 'G3': {
+          tokens = tokenString.split(/(?=[GXYZIJFR])/);
+          let cw = tokens.filter( t => t === "G2");
+          let arcResult = doArc(tokens, this.currentPosition, !this.absolute, 1);
+          let curPt = this.currentPosition.clone();
+          arcResult.points.forEach((point, idx) => {
+            let line = new gcodeLine();
+            line.lineNumber = this.gcodeLineNumber;
+            line.start = curPt.clone();
+            line.end = new BABYLON.Vector3(point.x, point.y,point.z);
+            line.color = this.currentColor.clone();
+            if(idx === 0 && this.debug){
+              line.color = cw ? new BABYLON.Color4(0,1,1,1) :  new BABYLON.Color4(1,1,0,1)
+              line.color = new BABYLON.Color4(0,1,0,1);
+            }
+            curPt = line.end.clone();
+            this.lines.push(line);
+          });
+         //Last point to currentposition
+
+          
+
+          this.currentPosition = new BABYLON.Vector3( arcResult.position.x, arcResult.position.y, arcResult.position.z);
+        } break;
         case 'G28':
           //Home
           this.currentPosition = new BABYLON.Vector3(0, 0, 0);

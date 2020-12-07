@@ -714,6 +714,9 @@ export default {
 		},
 		cameraInertia: function(to){
 			viewer.setCameraInertia(to);
+		},
+		$route  : function() {
+			this.resize();
 		}
 	},
 };

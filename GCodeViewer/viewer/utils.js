@@ -115,7 +115,7 @@ export function doArc(tokens, currentPosition, relativeMove, arcSegLength) {
     let pz = currZ;
     //calculate segments
     let currentAngle = arcCurrentAngle;
-    for (let moveIdx = 0; moveIdx < totalSegments; moveIdx++) {
+    for (let moveIdx = 0; moveIdx < totalSegments - 1; moveIdx++) {
         currentAngle += arcAngleIncrement;
         px = centerX + arcRadius * Math.cos(currentAngle) ;
         py = centerY + arcRadius * Math.sin(currentAngle)  ;

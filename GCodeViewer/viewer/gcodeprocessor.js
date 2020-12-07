@@ -457,9 +457,11 @@ export default class {
             line.start = curPt.clone();
             line.end = new BABYLON.Vector3(point.x, point.y,point.z);
             line.color = this.currentColor.clone();
-            if(idx === 0 && this.debug){
+            if(this.debug){
               line.color = cw ? new BABYLON.Color4(0,1,1,1) :  new BABYLON.Color4(1,1,0,1)
+              if(idx == 0){
               line.color = new BABYLON.Color4(0,1,0,1);
+              }
             }
             curPt = line.end.clone();
             this.lines.push(line);

@@ -87,7 +87,6 @@ export function doArc(tokens, currentPosition, relativeMove, arcSegLength) {
         if (totalArc < 0.0) {
             totalArc += 2 * Math.PI;
         }
-        console.log(totalArc);
     }
 
     //let arcSegmentLength = this.; //hard coding this to 1mm segment for now
@@ -104,10 +103,6 @@ export function doArc(tokens, currentPosition, relativeMove, arcSegLength) {
 
     let zDist = currZ - z;
     let zStep = zDist / totalSegments;
-
-    if (zStep != 0) {
-        console.log(`zStep ${zStep}`)
-    }
 
     //get points for the arc
     let px = currX;

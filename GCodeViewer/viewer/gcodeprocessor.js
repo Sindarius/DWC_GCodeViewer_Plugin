@@ -265,7 +265,7 @@ export default class {
     this.minFeedRate = Number.MAX_VALUE;
     this.maxFeedRate = 0;
     this.hasSpindle = false;
-
+    this.currentColor =  this.extruderColors[0].clone();
   }
 
   async processGcodeFile(file, renderQuality, clearCache) {
@@ -453,7 +453,7 @@ export default class {
           let curPt = this.currentPosition.clone();
           arcResult.points.forEach((point, idx) => {
             let line = new gcodeLine();
-            line.lineNumber = this.gcodeLineNumber;
+            line.gcodeLineNumber = this.gcodeLineNumber;
             line.start = curPt.clone();
             line.end = new BABYLON.Vector3(point.x, point.y,point.z);
             line.color = this.currentColor.clone();
@@ -490,13 +490,9 @@ export default class {
           break;
         case 'M3':
         case 'M4': {
-          console.log("M3")
           let tokens = tokenString.split(/(?=[SM])/);
-          console.log(tokens);
           let spindleSpeed = tokens.filter(speed => speed.startsWith('S'))
-          console.log(spindleSpeed[0]);
           spindleSpeed = spindleSpeed[0] ? Number(spindleSpeed[0].substring(1)) : 0;
-          console.log(spindleSpeed);
           if (spindleSpeed > 0) {
             this.hasSpindle = true;
           }
@@ -550,8 +546,7 @@ export default class {
 
 
 
-
-
+/*
   processGCodeLine(line) {
     var code = line.split(/(?=[XYZ])/);
     switch (code[0]) {
@@ -597,7 +592,7 @@ export default class {
 
 
   }
-
+*/
 
 
 
@@ -670,7 +665,8 @@ export default class {
     let lastRendered = 0;
 
     let beforeRenderFunc = function () {
-      if (that.liveTracking && !runComplete && (that.gcodeFilePosition === 0 || lastRendered >= that.gcodeLineIndex[meshIndex].length - 1)) {
+      
+      if (!that.liveTracking && !runComplete && !(that.gcodeFilePosition  && lastRendered >= that.gcodeLineIndex[meshIndex].length - 1)) {
         return;
       } else if (Date.now() - lastUpdate < that.refreshTime) {
         return;
@@ -684,6 +680,8 @@ export default class {
           return;
         }
 
+      
+      
         let renderTo = -1;
         let renderAhead = -1;
         for (var renderToIdx = lastRendered; renderToIdx < that.gcodeLineIndex[meshIndex].length; renderToIdx++) {

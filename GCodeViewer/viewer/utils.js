@@ -103,7 +103,7 @@ export function doArc(tokens, currentPosition, relativeMove, arcSegLength) {
 
     let zDist = currZ - z;
     let zStep = zDist / totalSegments;
-
+    
     //get points for the arc
     let px = currX;
     let py = currY;

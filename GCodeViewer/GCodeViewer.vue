@@ -591,6 +591,13 @@ export default {
 			}, 250);
 		},
 	},
+	activated() {
+		viewer.pause = false;
+		this.resize();
+	},
+	deactivated() {
+		viewer.pause = true;
+	},
 	watch: {
 		move: {
 			handler(newValue) {

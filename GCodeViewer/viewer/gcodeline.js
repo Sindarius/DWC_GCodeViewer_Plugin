@@ -26,7 +26,7 @@ export default class {
     lineMesh.edgesColor = new Color4(1, 1, 0, 1);
   }
 
-  renderLineV2(scene) {
+  renderLineV2() {
     var tube = MeshBuilder.CreateTube('tube', {
       path: [this.start, this.end],
       radius: 0.2,

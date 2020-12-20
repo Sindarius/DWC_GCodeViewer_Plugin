@@ -7,18 +7,16 @@ import { Color3 } from '@babylonjs/core/Maths/math.color'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { Space } from '@babylonjs/core/Maths/math.axis'
 import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder'
+import '@babylonjs/core/Rendering/edgesRenderer'
 import { TransformNode} from '@babylonjs/core/Meshes/transformNode'
 import { ArcRotateCamera }  from '@babylonjs/core/Cameras/arcRotateCamera'
 import { PointLight } from '@babylonjs/core/Lights/pointLight'
 import { Axis } from '@babylonjs/core/Maths/math.axis'
 
-
-
 import gcodeProcessor from './gcodeprocessor.js';
 import Bed from './bed.js';
 import BuildObjects from './buildobjects.js';
 import Axes from './axes.js';
-
 
 export default class {
   constructor(canvas) {
@@ -54,7 +52,8 @@ export default class {
       this.renderQuality = 1;
     }
 
-    this.hasCacheSupport = 'caches' in window;
+    this.hasCacheSupport =false; // 'caches' in window;
+    /*
     if (this.hasCacheSupport) {
       window.caches
         .open('gcode-viewer')
@@ -66,7 +65,9 @@ export default class {
           this.hasCacheSupport = false;
         });
     }
+    */
   }
+  
   getMaxHeight() {
     return this.maxHeight;
   }
@@ -463,5 +464,11 @@ export default class {
     this.cameraInertia = enabled;
     localStorage.setItem('cameraInertia', enabled);
     this.updateCameraInertiaProperties()
+  }
+
+  dispose(){
+    console.info("Shutting down 3D Viewer");
+    this.engine.dispose();
+    this.engine = null;
   }
 }
